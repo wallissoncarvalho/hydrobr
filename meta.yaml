@@ -14,8 +14,9 @@ build:
 requirements:
   run:
     - python>=3.6
-    - pandas
-    - tdqm
+    - pandas>=0.25,<0.26
+    - tqdm>=4.31,<4.32
+    - requests>=2.21,<2.22
   build:
     - python
     - setuptools

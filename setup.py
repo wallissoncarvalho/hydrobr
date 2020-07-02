@@ -4,6 +4,10 @@ from versioneer import find_version
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open('requirements.txt') as req:
+    require = req.readlines()
+install_requires = [r.strip() for r in require]
+
 setup(
     name='hydrobr',
     description='HydroBr is an open-source package to work with Brazilian hydrometeorological time series.',
@@ -18,9 +22,11 @@ setup(
                  'Environment :: Console',
                  'Operating System :: OS Independent',
                  'Intended Audience :: Science/Research',
+                 "Programming Language :: Python :: 3"
                  "Programming Language :: Python :: 3.6",
                  "Programming Language :: Python :: 3.7",
                  "Programming Language :: Python :: 3.8",
                  "Topic :: Scientific/Engineering",
                  ],
+    install_requires=install_requires
 )
