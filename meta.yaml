@@ -1,0 +1,25 @@
+{% set setup_py = load_setup_py_data() %}
+package:
+  name: hydrobr
+  version: {{ setup.py.get('version') }}
+
+source:
+  path: ./
+
+build:
+  scrpit: python
+  number: 0
+  script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+  run:
+    - python>=3.6
+    - pandas
+  build:
+    - python
+    - setuptools
+
+about:
+  license: {{ setup_py.get('license') }}
+  license_file: LICENSE
+  summary: {{ setup_py.get('description') }}
