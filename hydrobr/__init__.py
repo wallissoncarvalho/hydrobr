@@ -3,3 +3,4 @@
 __version__ = '0.0.1'
 
 from hydrobr.get import Stations
+from hydrobr.graphics import Plot
