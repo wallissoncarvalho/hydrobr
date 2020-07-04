@@ -15,7 +15,7 @@ setup(
     keywords='timeseries flow precipitation stages',
     author='Wallisson Moreira de Carvalho',
     url='https://github.com/wallissoncarvalho/hydrobr',
-    download_url='https://github.com/wallissoncarvalho/hydrobr/archive/0.0.1.tar.gz',
+    download_url='https://github.com/wallissoncarvalho/hydrobr/archive/0.0.2.tar.gz',
     author_email='cmwallisson@gmail.com',
     license='BSD 3-Clause License',
     packages=find_packages(),
