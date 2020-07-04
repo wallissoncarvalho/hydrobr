@@ -420,7 +420,7 @@ class INMET:
 
         # Getting the data
         data_station = pd.DataFrame()
-        for start_date, end_date in zip(start_dates, end_dates):
+        for start_date, end_date in tqdm(zip(start_dates, end_dates)):
             response_station = requests.get(
                 'https://apitempo.inmet.gov.br/estacao/{}/{}/{}'.format(start_date.strftime("%Y-%m-%d"),
                                                                         end_date.strftime("%Y-%m-%d"), station_code),
