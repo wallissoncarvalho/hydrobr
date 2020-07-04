@@ -11,18 +11,33 @@ class PreProcessing:
     @staticmethod
     def stations_filter(data, n_years=10, missing_percentage=5, start_date=False, end_date=False):
         """
-        A composed method to select stations.
-        :param data:A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-        :param n_years:int, optional, default: 10
-        To select the station that contain at least a number of years between the first date and the last date.
-        :param missing_percentage: int,float, optional, default: 5
-        To select the stations that contain until a chosen percentage of missing values. A number between 0 and 100
-        :param start_date:int, float, str, optional, default: False
-        The desired start date for the output DataFrame
-        :param end_date: int, float, str, optional, default: False
-        The desired end date for the output DataFrame
-        For start_date and end_date format, see: pandas.to_datetime documentation
-        :return: Pandas DataFrame after going through the filtering methods
+        A composed method to filter stations. 
+        
+        First, the method filters the stations data by the Start Date and the End Date, it its passed. After that, the 
+        is selected only the stations with at least a defined number of years between the first date and the last date
+        of the station. At the end is selected the stations that contains at least one window of data with the number of
+        years and a maximum missing data percentage. 
+
+        Parameters
+        ----------
+        data : pandas DataFrame
+            A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
+        n_years: int, default 10
+            The minimum number of years of registered data for the station between the first date and the end date.
+        missing_percentage: int, default 5
+             The maximum missing data percentage in a window with n_years.
+             A number between 0 and 100
+        start_date : int, float, str, default False
+            The desired start date for the output DataFrame.
+            See: pandas.to_datetime documentation if have doubts about the date format
+        end_date: int, float, str, default False
+            The desired end date for the output DataFrame.
+            See: pandas.to_datetime documentation if have doubts about the date format
+
+        Returns
+        -------
+        data : pandas DataFrame
+            A pandas DataFrame with only the filtered stations
         """
         # If the start and/or end date is given this step selects the temporal window in the dataset
         if start_date != False and end_date != False:
@@ -87,17 +102,35 @@ class PreProcessing:
         return data
 
     @staticmethod
-    def daily_to_monthly(data):
+    def daily_to_monthly(data, method='sum'):
         """
-        Transform a time series of daily data into a time series accumulated monthly. A month with a day missing data is
-         considered as a missing month in the conversion process.
-        :param data: A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-        :return: A pandas monthly DataFrame.
+        Transform a time series of daily data into a time series monthly data.
+
+        In the conversion process a month with a day missing data is considered as a missing month.
+
+        Parameters
+        ----------
+        data : pandas DataFrame
+            A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
+        method: str, default sum
+            The method used to convert. If 'sum', the monthly data will be the sum of the daily data. If 'mean', the
+            monthly data will be the mean of the daily data.
+
+        Returns
+        -------
+        monthly_data : pandas DataFrame
+            The  monthly pandas DataFrame
         """
+
         monthly_data = pd.DataFrame()
         for column in data.columns:
             series = data[column]
-            monthly_series = series.groupby(pd.Grouper(freq='1MS')).sum().to_frame()
+            if method == 'sum':
+                monthly_series = series.groupby(pd.Grouper(freq='1MS')).sum().to_frame()
+            elif method == 'mean':
+                monthly_series = series.groupby(pd.Grouper(freq='1MS')).mean().to_frame()
+            else:
+                raise Exception('Please, select a valid method.')
             missing = series.isnull().groupby(pd.Grouper(freq='1MS')).sum().to_frame()
             to_drop = missing.loc[missing[column] > 0]  # A month with a missing data is a missing month
             monthly_series = monthly_series.drop(index=to_drop.index).sort_index()
