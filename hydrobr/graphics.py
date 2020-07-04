@@ -8,8 +8,6 @@ from plotly.offline import plot
 
 
 class Plot:
-    def __init__(self):
-        pass
 
     @staticmethod
     def fdc(data, y_log_scale=True):

@@ -1,4 +1,5 @@
 import calendar
+import datetime
 import json
 import pandas as pd
 import requests
@@ -10,9 +11,6 @@ class ANA:
     """
     It provides a connection with the Brazilian National Water Agency (Agência Nacional de Águas - ANA) database
     """
-
-    def __init__(self):
-        pass
 
     @staticmethod
     def __list_ana(params):
@@ -264,9 +262,6 @@ class INMET:
      - INMET) database.
     """
 
-    def __init__(self):
-        pass
-
     @staticmethod
     def list_stations(station_type='both'):
         """
@@ -312,7 +307,7 @@ class INMET:
         return list_stations
 
     @staticmethod
-    def data_daily_station(station_code, filter=True):
+    def daily_data(station_code, filter=True):
         """
         Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
         (Instituto Nacional de Meteorologia - INMET) database.
@@ -363,7 +358,7 @@ class INMET:
         return data_station
 
     @staticmethod
-    def data_hourly_station(station_code, filter=True):
+    def hourly_data(station_code):
         """
         Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
         (Instituto Nacional de Meteorologia - INMET) database.
@@ -393,10 +388,6 @@ class INMET:
         ----------
         station_code : string
             Code of the station as a string
-        filter: boolean, default True
-            There is stations with repeated registered data. If 'True' the function returns a panda DataFrame
-            with the first occurrence of the date. If 'False' return a pandas DataFrame with, in some cases, repeated
-            datetime index.
 
         Returns
         -------

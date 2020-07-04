@@ -5,8 +5,6 @@ from tqdm import tqdm
 
 
 class PreProcessing:
-    def __init__(self):
-        pass
 
     @staticmethod
     def stations_filter(data, n_years=10, missing_percentage=5, start_date=False, end_date=False):
