@@ -28,7 +28,6 @@ class Plot:
         fig : plotly Figure
         """
 
-
         fig = go.Figure()
         y_max = 0
         for name in data.columns:
@@ -65,7 +64,6 @@ class Plot:
         -------
         fig : plotly Figure
         """
-
 
         date_index = pd.date_range(data.index[0], data.index[-1], freq='D')
         data = data.reindex(date_index)
@@ -111,5 +109,4 @@ class Plot:
         fig.layout.xaxis.ticktext = pd.date_range('1/1/' + str(start_year), '12/31/' + str(finish_year + 1),
                                                   freq='2AS').year
         fig = go.FigureWidget(fig)
-        fig.update_layout(font=dict(family="Courier New, monospace", size=25))
         return fig
