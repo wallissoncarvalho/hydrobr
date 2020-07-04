@@ -1,10 +1,10 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from math import ceil, log
-from plotly.offline import plot
+import pandas as pd
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
+from math import ceil, log
+from plotly.offline import plot
 
 
 class Plot:
