@@ -60,7 +60,9 @@ class Stations:
                       'telemetrica': ''}
             list_stations = Stations.__list_ana(params)
         elif souce == 'ANAF':
-            list_stations = pd.read_csv(r'resources/ANAF_flow_stations.pkl')
+            path = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.join(path, 'resources', 'ANAF_flow_stations.pkl')
+            list_stations = pd.read_csv(file_path)
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -88,7 +90,9 @@ class Stations:
                       'telemetrica': ''}
             list_stations = Stations.__list_ana(params)
         elif source == 'ANAF':
-            list_stations = pd.read_csv(r'resources/ANAF_prec_stations.pkl')
+            path = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.join(path, 'resources', 'ANAF_prec_stations.pkl')
+            list_stations = pd.read_csv(file_path)
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
