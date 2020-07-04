@@ -15,10 +15,20 @@ class Plot:
     def fdc(data, y_log_scale=True):
         """
         Make a flow duration curve plot.
-        :param data: A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-        :param y_log_scale: boolean, optional, default: True, to set the plotting y-axis in the logarithmic scale.
-        :return plotly figure
+
+        Parameters
+        ----------
+        data : pandas DataFrame
+            A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station..
+        y_log_scale : boolean, default True
+            Defines if the the plotting y-axis will be in the logarithmic scale.
+
+        Returns
+        -------
+        fig : plotly Figure
         """
+
+
         fig = go.Figure()
         y_max = 0
         for name in data.columns:
@@ -42,12 +52,21 @@ class Plot:
     @staticmethod
     def gantt(data, monthly=True):
         """
-        Make the Gantt plot. This graphic shows the temporal data availability for each station.
-        :param data:A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-        :param monthly: boolean, optional, default: True, Defines if the availability count of the data will be monthly
-        to obtain a more fluid graph.
-        :return plotly figure
+        Make a Gantt plot, which shows the temporal data availability for each station.
+
+        Parameters
+        ----------
+        data : pandas DataFrame
+            A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station..
+        monthly : boolean, default True
+            Defines if the availability count of the data will be monthly to obtain a more fluid graph.
+
+        Returns
+        -------
+        fig : plotly Figure
         """
+
+
         date_index = pd.date_range(data.index[0], data.index[-1], freq='D')
         data = data.reindex(date_index)
         periods = []
