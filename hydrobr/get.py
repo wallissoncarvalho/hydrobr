@@ -1,7 +1,7 @@
-import xml.etree.ElementTree as ET
-import requests
-import pandas as pd
 import calendar
+import pandas as pd
+import requests
+import xml.etree.ElementTree as ET
 from tqdm import tqdm
 
 
@@ -58,7 +58,7 @@ class Stations:
             The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water Agency
             (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
             with registered data.
-            
+
         Returns
         -------
         list_stations : pandas DataFrame
