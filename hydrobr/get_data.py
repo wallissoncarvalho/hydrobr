@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm
 
 
-class Stations:
+class ANA:
 
     def __init__(self):
         pass
@@ -191,7 +191,7 @@ class Stations:
         return data_stations
 
     @staticmethod
-    def prec_data(list_station, only_consisted=False, source='ANA'):
+    def prec_data(list_station, only_consisted=False):
         """
         Get the precipitation station data series from a list of stations code.
 
@@ -201,9 +201,6 @@ class Stations:
             A list of with the stations code as strings.
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
-        source: string, default 'ANA'
-            The source to look for the data. 'ANA' if the list of stations is from the Brazilian National Water Agency
-            (ANA) database or 'INMET' if the list of stations is from INMET.
 
         Returns
         -------
@@ -211,12 +208,7 @@ class Stations:
             The data os each station as a column in a pandas DataFrame
         """
 
-        if source == 'ANA':
-            data_stations = Stations.__data_ana(list_station, '2', only_consisted=only_consisted)
-        elif source == 'INMET':
-            raise Exception('Not implemented yet.')
-        else:
-            raise Exception('Please, select a valid source.')
+        data_stations = Stations.__data_ana(list_station, '2', only_consisted=only_consisted)
 
         return data_stations
 
