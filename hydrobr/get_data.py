@@ -346,7 +346,7 @@ class INMET:
         response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
             station['Start Operation'].to_list()[0].strftime("%Y-%m-%d"), pd.to_datetime("today").strftime("%Y-%m-%d"),
             station_code),
-                                        timeout=60.0)
+            timeout=60.0)
 
         data_station = pd.DataFrame(json.loads(response_station.text))
         data_station.rename(
@@ -370,13 +370,24 @@ class INMET:
 
         Only works for Automatic Stations
 
-        Returns a pandas hourly DataFrame with six variables for each day:
-            - Prec - Precipitation (mm)
-            - Tmean - Daily mean Temperature (ºC)
+        Returns a pandas hourly DataFrame with 17 variables for each day:
+            - Tins - Instant Temperature (ºC)
             - Tmax - Maximum Temperature (ºC)
             - Tmin - Minimum Temperature (ºC)
-            - RH - Relative Humidity (%)
-            - SD - Sunshine Duration (hours)
+            - RHins - Instant Relative Humidity (%)
+            - RHmax - Maximum Relative Humidity (%)
+            - RHmin - Minimum Relative Humidity (%)
+            - DPins - Instant Dew Point Temperature (ºC)
+            - DPmax - Maximum Dew Point Temperature (ºC)
+            - DPmin - Minimum Dew Point Temperature (ºC)
+            - Pins - Instant Pressure (hPa)
+            - Pmax - Maximum Pressure (hPa)
+            - Pmin - Minimum Pressure (hPa)
+            - Wspeed - Wind Speed (m/s)
+            - Wdir - Wind direction (º)
+            - Wgust - Wind gust (m/s)
+            - Rad - Global Radiation (kJ/m²)
+            - Prec - Precipitation (mm)
 
         Parameters
         ----------
@@ -416,4 +427,24 @@ class INMET:
                 timeout=60.0)
             data_station_window = pd.DataFrame(json.loads(response_station.text))
             data_station = pd.concat([data_station, data_station_window])
+
+        data_station['Date'] = pd.to_datetime(
+            data_station['DT_MEDICAO'] + data_station['HR_MEDICAO'].apply(lambda x: ' ' + x[:2]))
+        data_station.index = data_station['Date']
+        data_station.rename(columns={'CHUVA': 'Prec', 'TEM_MAX': 'Tmax', 'TEM_INS': 'Tins', 'TEM_MIN': 'Tmin',
+                                     'PRE_INS': 'Pins', 'PRE_MAX': 'Pmax', 'PRE_MIN': 'Pmin', 'PTO_INS': 'DPins',
+                                     'PTO_MAX': 'DPmax',
+                                     'PTO_MIN': 'DPmin', 'UMD_INS': 'RHins', 'UMD_MAX': 'RHmax', 'UMD_MIN': 'RHmin',
+                                     'VEN_DIR': 'Wdir',
+                                     'VEN_RAJ': 'Wgust', 'VEN_VEL': 'Wspeed', 'RAD_GLO': 'Rad'}, inplace=True)
+        data_station = data_station[
+            ['Tins', 'Tmax', 'Tmin', 'RHins', 'RHmax', 'RHmin', 'DPins', 'DPmax', 'DPmin', 'Pins', 'Pmax', 'Pmin',
+             'Wspeed', 'Wdir', 'Wgust', 'Rad', 'Prec']]
+
+        # Cleaning the data
+        data_station = data_station.dropna(how='all', axis=0)
+        data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
+        date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='H')
+        data_station = data_station.reindex(date_index)
+
         return data_station
