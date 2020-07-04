@@ -44,31 +44,60 @@ class Stations:
         return list_stations
 
     @staticmethod
-    def list_flow_stations(state='', city=''):
+    def list_flow_stations(state='', city='', source='ANA'):
         """
-            This function searches for flow/stage stations registered in the Brazilian National Agency of Water inventory.
-            To make a selection you can pass a state name and/or a city name:
-                state: state name (e.g., Rio de Janeiro)
-                city: city name (e.g., Itaperuna)
+        This function searches for flow/stage stations registered in the Brazilian National Agency of Water inventory.
+        To make a selection you can pass a state name and/or a city name:
+        :param state: state name (e.g., Rio de Janeiro)
+        :param city: city name (e.g., Itaperuna)
+        :param source str, optional - To select the source to get the data. You can choose source='ANA' to get the list
+        of stations from the Brazilian National Water Agency (ANA) database or source='ANAF' to get the filtered list
+        of stations that contain only the stations from ANA with registered data.
         """
-        params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '1', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
-                  'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '', 'telemetrica': ''}
-        list_stations = Stations.__list_ana(params)
+        if source == 'ANA':
+            params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '1', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
+                      'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
+                      'telemetrica': ''}
+            list_stations = Stations.__list_ana(params)
+        elif souce == 'ANAF':
+            list_stations = pd.read_csv(r'resources/ANAF_flow_stations.pkl')
+            if city != '':
+                list_stations = list_stations[list_stations['City'] == city]
+            if state != '':
+                list_stations = list_stations[list_stations['State'] == state]
+
+        else:
+            raise Exception('Please, select a valid source.')
+
         return list_stations
 
     @staticmethod
-    def list_prec_stations(state='', city=''):
+    def list_prec_stations(state='', city='', source='ANA'):
         """
-            This function searches for precipitation stations registered in the Brazilian National Agency of Water inventory.
-            To make a selection you can pass a state name and/or a city name:
-                state: state name (e.g., Rio de Janeiro)
-                city: city name (e.g., Itaperuna)
+        This function searches for precipitation stations registered in the Brazilian National Agency of Water inventory.
+        :param state: state name (e.g., Rio de Janeiro)
+        :param city: city name (e.g., Itaperuna)
+        :param source str, optional - To select the source to get the data. You can choose source='ANA' to get the list
+        of stations from the Brazilian National Water Agency (ANA) database, source='ANAF' to get the filtered list
+        of stations that contain only the stations from ANA with registered data, or source='INMET' to get the stations
+        from INMET.
         """
+        if source == 'ANA':
+            params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '2', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
+                      'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
+                      'telemetrica': ''}
+            list_stations = Stations.__list_ana(params)
+        elif source == 'ANAF':
+            list_stations = pd.read_csv(r'resources/ANAF_prec_stations.pkl')
+            if city != '':
+                list_stations = list_stations[list_stations['City'] == city]
+            if state != '':
+                list_stations = list_stations[list_stations['State'] == state]
+        elif source == 'INMET':
+            raise Exception('Not implemented yet.')
+        else:
+            raise Exception('Please, select a valid source.')
 
-        params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '2', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
-                  'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
-                  'telemetrica': ''}
-        list_stations = Stations.__list_ana(params)
         return list_stations
 
     @staticmethod
@@ -135,34 +164,50 @@ class Stations:
         return data_stations
 
     @staticmethod
-    def prec_data(list_station, only_consisted=False):
+    def prec_data(list_station, only_consisted=False, source='ANA'):
         """
         Get the precipitation station data series from a list of stations code.
         :param list_station: list
         :param only_consisted, boolean, optional (if True return only consisted data), standard False
+        :param source: str, optional - To select the Brazilian source to get the data.
         :return: Pandas DataFrame
         """
-        data_stations = Stations.__data_ana(list_station, '2', only_consisted=False)
+        if source == 'ANA':
+            data_stations = Stations.__data_ana(list_station, '2', only_consisted=only_consisted)
+        elif source == 'INMET':
+            raise Exception('Not implemented yet.')
+        else:
+            raise Exception('Please, select a valid source.')
+
         return data_stations
 
     @staticmethod
-    def stage_data(list_station, only_consisted=False):
+    def stage_data(list_station, only_consisted=False, source='ANA'):
         """
         Get the stage station data series from a list of stations code.
         :param list_station: list
         :param only_consisted, boolean, optional (if True return only consisted data), standard False
+        :param source: str, optional - To select the Brazilian source to get the data.
         :return: Pandas DataFrame
         """
-        data_stations = Stations.__data_ana(list_station, '1', only_consisted=False)
+        if source == 'ANA':
+            data_stations = Stations.__data_ana(list_station, '1', only_consisted=only_consisted)
+        else:
+            raise Exception('There is stage data only from the Brazilian National Water Agency (ANA).')
         return data_stations
 
     @staticmethod
-    def flow_data(list_station, only_consisted=False):
+    def flow_data(list_station, only_consisted=False, source='ANA'):
         """
         Get the flow station data series from a list of stations code.
         :param list_station: list
         :param only_consisted, boolean, optional (if True return only consisted data), standard False
+        :param source: str, optional - To select the Brazilian source to get the data.
         :return: Pandas DataFrame
         """
-        data_stations = Stations.__data_ana(list_station, '3', only_consisted=False)
+        if source == 'ANA':
+            data_stations = Stations.__data_ana(list_station, '3', only_consisted=only_consisted)
+        else:
+            raise Exception('There is flow data only from the Brazilian National Water Agency (ANA).')
+
         return data_stations

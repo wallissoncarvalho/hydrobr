@@ -19,6 +19,8 @@ setup(
     author_email='cmwallisson@gmail.com',
     license='BSD 3-Clause License',
     packages=find_packages(),
+    package_data={
+        'hydrobr': ['resources/*.pkl']},
     classifiers=['Development Status :: 1 - Planning',
                  'Environment :: Console',
                  'Operating System :: OS Independent',
