@@ -1,4 +1,5 @@
 import calendar
+import json
 import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
@@ -6,6 +7,9 @@ from tqdm import tqdm
 
 
 class ANA:
+    """
+    It provides a connection with the Brazilian National Water Agency (Agência Nacional de Águas - ANA) database
+    """
 
     def __init__(self):
         pass
@@ -87,8 +91,7 @@ class ANA:
     @staticmethod
     def list_prec_stations(state='', city='', source='ANA'):
         """
-        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INEMET
-        inventory.
+        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA)
 
         Parameters
         ----------
@@ -98,8 +101,8 @@ class ANA:
             Brazilian city name where the stations are located (e.g., Rio de Itaperuna)
         source: string, default 'ANA'
             The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water Agency
-            (ANA) database, 'ANAF' to get the filtered list of stations that contain only the stations from ANA
-            with registered data, or 'INMET' to get the stations from the INMET inventory.
+            (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
+            with registered data.
 
         Returns
         -------
@@ -120,8 +123,6 @@ class ANA:
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
                 list_stations = list_stations[list_stations['State'] == state]
-        elif source == 'INMET':
-            raise Exception('Not implemented yet.')
         else:
             raise Exception('Please, select a valid source.')
 
@@ -255,3 +256,57 @@ class ANA:
         data_stations = Stations.__data_ana(list_station, '3', only_consisted=only_consisted)
 
         return data_stations
+
+
+class INMET:
+    """
+    It provides a connection with the  Brazilian National Institute of Meteorology (Instituto Nacional de Meteorologia
+     - INMET) database.
+    """
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def list_stations(station_type='both'):
+        """
+        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INEMET
+        inventory.
+
+        Parameters
+        ----------
+        station_type : string, default 'both'
+            The type of station. 'both' to get the list of automatic and manual gauge stations, 'automatic' to get only
+            the automatic gauge stations, and 'conventional' to get only the conventional gauge stations.
+        Returns
+        -------
+        list_stations : pandas DataFrame
+            The selected list of stations as a pandas DataFrame
+        """
+
+        if station_type == 'both':
+            responseM = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=20.0)
+            responseT = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=20.0)
+            list_stations = pd.concat([pd.DataFrame(json.loads(responseM.text)),
+                                       pd.DataFrame(json.loads(responseT.text))])
+        elif station_type == 'automatic':
+            response = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=20.0)
+            list_stations = pd.DataFrame(json.loads(response.text))
+        elif station_type == 'conventional':
+            response = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=20.0)
+            list_stations = pd.DataFrame(json.loads(response.text))
+        else:
+            raise Exception('Please, select a valid station type.')
+
+        list_stations['TP_ESTACAO'].replace({'Automatica': 'Automatic', 'Convencional': 'Conventional'}, inplace=True)
+        list_stations.rename(columns={'CD_ESTACAO': 'Code', 'TP_ESTACAO': 'Type', 'DC_NOME': 'Name',
+                                      'SG_ESTADO': 'State', 'VL_LATITUDE': 'Latitude', 'VL_LONGITUDE': 'Longitude',
+                                      'VL_ALTITUDE': 'Height', 'DT_INICIO_OPERACAO': 'Start Operation',
+                                      'DT_FIM_OPERACAO': 'End Operation'},
+                             inplace=True)
+        list_stations = list_stations[
+            ['Code', 'Type', 'Name', 'State', 'Latitude', 'Longitude', 'Height', 'Start Operation', 'End Operation']]
+        list_stations['Start Operation'] = pd.to_datetime(list_stations['Start Operation'])
+        list_stations['End Operation'] = pd.to_datetime(list_stations['End Operation']).replace(
+            {pd.NaT: 'In operation'})
+        return list_station
