@@ -309,4 +309,56 @@ class INMET:
         list_stations['Start Operation'] = pd.to_datetime(list_stations['Start Operation'])
         list_stations['End Operation'] = pd.to_datetime(list_stations['End Operation']).replace(
             {pd.NaT: 'In operation'})
-        return list_station
+        return list_stations
+
+    @staticmethod
+    def data_daily_station(station_code, filter=True):
+        """
+        Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
+        (Instituto Nacional de Meteorologia - INMET) database.
+
+        Returns a pandas DataFrame with six variables for each day:
+            - Prec - Precipitation (mm)
+            - Tmean - Daily mean Temperature (ºC)
+            - Tmax - Maximum Temperature (ºC)
+            - Tmin - Minimum Temperature (ºC)
+            - RH - Relative Humidity (%)
+            - SD - Sunshine Duration (hours)
+
+        Parameters
+        ----------
+        station_code : string
+            Code of the station as a string
+        filter: boolean, default True
+            There is stations with repeated registred repeated data. If 'True' the funtion returns a panda DataFrame
+            with the first occurrence of the date. If 'False' return a pandas DataFrame with, in some cases, repeated
+            datetime index.
+
+        Returns
+        -------
+        data : pandas DataFrame
+            The data of the selected station as a pandas DataFrame
+        """
+        list_stations = INMET.list_stations()
+        station = list_stations[list_stations.Code == station_code]
+        start_date = str(station['Start Operation'].to_list()[0].year) + '-' + str(
+            station['Start Operation'].to_list()[0].month) + '-' + str(station['Start Operation'].to_list()[0].day)
+        today = pd.to_datetime("today")
+        end_date = str(today.year)+'-'+str(today.month)+'-'+str(today.day)
+        response_station = requests.get(
+            'https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(start_date, end_date, station_code),
+            timeout=60.0)
+
+        data_station = pd.DataFrame(json.loads(response_station.text))
+        data_station.rename(
+            columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RH',
+                     'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
+        data_station.index = pd.to_datetime(data_station.Date)
+        data_station = data_station[['Prec', 'Tmean', 'Tmax', 'Tmin', 'RH', 'SD']]
+        data_station[data_station.columns] = data_station[data_station.columns].apply(pd.to_numeric, errors='coerce')
+        data_station = data_station.dropna(how='all', axis=0)
+        if filter:
+            data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
+            date_index = pd.date_range(data_station.index[0], date_index.index[-1], freq='D')
+            data_station = data_station.reindex(date_index)
+        return data_station
