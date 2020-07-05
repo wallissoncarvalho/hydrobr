@@ -50,7 +50,7 @@ class ANA:
     def list_flow_stations(state='', city='', source='ANA'):
         """
         Searches for flow/stage stations registered at the Brazilian National Agency of Water inventory.
-        
+
         Parameters
         ----------
         state : string
@@ -76,7 +76,8 @@ class ANA:
         elif souce == 'ANAF':
             path = os.path.dirname(os.path.abspath(__file__))
             file_path = os.path.join(path, 'resources', 'ANAF_flow_stations.pkl')
-            list_stations = pd.read_pickle(file_path)
+            list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
+                                        'resources/ANAF_flow_stations.csv')
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -115,9 +116,8 @@ class ANA:
                       'telemetrica': ''}
             list_stations = Stations.__list_ana(params)
         elif source == 'ANAF':
-            path = os.path.dirname(os.path.abspath(__file__))
-            file_path = os.path.join(path, 'resources', 'ANAF_prec_stations.pkl')
-            list_stations = pd.read_pickle(file_path)
+            list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
+                                        'resources/ANAF_prec_stations.csv')
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -461,7 +461,8 @@ class ONS:
         data : pandas DataFrame
             All the naturalized daily flow data as a pandas DataFrame, where each column refers to a specific reservoir.
         """
-        path = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(path, 'resources', 'ONS_daily_flow.pkl')
-        data = pd.read_pickle(file_path, compression='bz2')
+        data = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
+                           'resources/ONS_daily_flow.csv')
+        data.index = pd.to_datetime(data.Date)
+        data.drop('Date', axis=1, inplace=True)
         return data
