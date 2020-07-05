@@ -20,7 +20,8 @@ class ANA:
         if list(params.keys()) != check_params:
             raise Exception('You must pass the dictionary with the standard keys.')
 
-        response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroInventario', params, timeout=20.0)
+        response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroInventario', params,
+                                timeout=120.0)
         tree = ET.ElementTree(ET.fromstring(response.content))
         root = tree.getroot()
 
@@ -47,7 +48,7 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def list_flow_stations(state='', city='', source='ANA'):
+    def list_flow_stations(state='', city='', source='ANAF'):
         """
         Searches for flow/stage stations registered at the Brazilian National Agency of Water inventory.
 
@@ -57,10 +58,11 @@ class ANA:
             Brazilian state name where the stations are located (e.g., Rio de Janeiro)
         city : string
             Brazilian city name where the stations are located (e.g., Rio de Itaperuna)
-        source: string, default 'ANA'
+        source: string, default 'ANAF'
             The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water Agency
             (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
             with registered data.
+            More information about ANAF: https://doi.org/10.5281/zenodo.3755065
 
         Returns
         -------
@@ -72,7 +74,7 @@ class ANA:
             params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '1', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
                       'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
                       'telemetrica': ''}
-            list_stations = Stations.__list_ana(params)
+            list_stations = ANA.__list_ana(params)
         elif source == 'ANAF':
             list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
                                         'resources/ANAF_flow_stations.csv')
@@ -87,7 +89,7 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def list_prec_stations(state='', city='', source='ANA'):
+    def list_prec_stations(state='', city='', source='ANAF'):
         """
         Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA)
 
@@ -101,6 +103,7 @@ class ANA:
             The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water Agency
             (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
             with registered data.
+            More information about ANAF: https://doi.org/10.5281/zenodo.3755065
 
         Returns
         -------
@@ -134,7 +137,7 @@ class ANA:
             params['codEstacao'] = str(station)
             try:
                 response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica', params,
-                                        timeout=60.0)
+                                        timeout=120.0)
             except (
                     requests.ConnectTimeout, requests.HTTPError, requests.ReadTimeout, requests.Timeout,
                     requests.ConnectionError):
@@ -145,6 +148,7 @@ class ANA:
             df = []
             for month in root.iter('SerieHistorica'):
                 code = month.find('EstacaoCodigo').text
+                code = f'{int(code):08}'
                 consist = int(month.find('NivelConsistencia').text)
                 date = pd.to_datetime(month.find('DataHora').text, dayfirst=True)
                 date = pd.Timestamp(date.year, date.month, 1, 0)
@@ -165,7 +169,7 @@ class ANA:
                         list_consist.append(consist)
                 index_multi = list(zip(month_dates, list_consist))
                 index_multi = pd.MultiIndex.from_tuples(index_multi, names=["Date", "Consistence"])
-                df.append(pd.DataFrame({f'{int(code):08}': data}, index=index_multi))
+                df.append(pd.DataFrame({code: data}, index=index_multi))
             if (len(df)) == 0:
                 continue
             df = pd.concat(df)
@@ -179,7 +183,7 @@ class ANA:
                 df = df.reset_index(level=1, drop=True)
                 if (len(df)) == 0:
                     continue
-            series = df[f'{int(code):08}']
+            series = df[code]
             date_index = pd.date_range(series.index[0], series.index[-1], freq='D')
             series = series.reindex(date_index)
             data_stations.append(series)
@@ -229,7 +233,7 @@ class ANA:
             The data os each station as a column in a pandas DataFrame
         """
 
-        data_stations = Stations.__data_ana(list_station, '1', only_consisted=only_consisted)
+        data_stations = ANA.__data_ana(list_station, '1', only_consisted=only_consisted)
         return data_stations
 
     @staticmethod
@@ -250,7 +254,7 @@ class ANA:
         data_stations : pandas DataFrame
             The data os each station as a column in a pandas DataFrame
         """
-        data_stations = Stations.__data_ana(list_station, '3', only_consisted=only_consisted)
+        data_stations = ANA.__data_ana(list_station, '3', only_consisted=only_consisted)
 
         return data_stations
 
@@ -279,15 +283,15 @@ class INMET:
         """
 
         if station_type == 'both':
-            responseM = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=20.0)
-            responseT = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=20.0)
+            responseM = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=120.0)
+            responseT = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=120.0)
             list_stations = pd.concat([pd.DataFrame(json.loads(responseM.text)),
                                        pd.DataFrame(json.loads(responseT.text))])
         elif station_type == 'automatic':
-            response = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=20.0)
+            response = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=120.0)
             list_stations = pd.DataFrame(json.loads(response.text))
         elif station_type == 'conventional':
-            response = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=20.0)
+            response = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=120.0)
             list_stations = pd.DataFrame(json.loads(response.text))
         else:
             raise Exception('Please, select a valid station type.')
@@ -337,12 +341,20 @@ class INMET:
         station = list_stations[list_stations.Code == station_code]
         if len(station) == 0:
             raise Exception('Please input a valid station code')
-        response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
-            station['Start Operation'].to_list()[0].strftime("%Y-%m-%d"), pd.to_datetime("today").strftime("%Y-%m-%d"),
-            station_code),
-            timeout=60.0)
 
-        data_station = pd.DataFrame(json.loads(response_station.text))
+        try:
+            response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
+                station['Start Operation'].to_list()[0].strftime("%Y-%m-%d"), pd.to_datetime("today").strftime("%Y-%m"
+                                                                                                               "-%d"),
+                station_code),
+                timeout=120.0)
+        except:
+            raise Exception('It was not possible to get the data, please verify your connection and try again.')
+        try:
+            data_station = pd.DataFrame(json.loads(response_station.text))
+        except:
+            raise Exception('It was not possible to get the data, please verify your connection and try again.')
+
         data_station.rename(
             columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RH',
                      'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
@@ -411,12 +423,18 @@ class INMET:
         # Getting the data
         data_station = pd.DataFrame()
         for start_date, end_date in tqdm(zip(start_dates, end_dates)):
-            response_station = requests.get(
-                'https://apitempo.inmet.gov.br/estacao/{}/{}/{}'.format(start_date.strftime("%Y-%m-%d"),
-                                                                        end_date.strftime("%Y-%m-%d"), station_code),
-                timeout=60.0)
-            data_station_window = pd.DataFrame(json.loads(response_station.text))
-            data_station = pd.concat([data_station, data_station_window])
+            try:
+                response_station = requests.get(
+                    'https://apitempo.inmet.gov.br/estacao/{}/{}/{}'.format(start_date.strftime("%Y-%m-%d"),
+                                                                            end_date.strftime("%Y-%m-%d"),
+                                                                            station_code), timeout=120.0)
+            except:
+                raise Exception('It was not possible to get the data, please verify your connection and try again.')
+            try:
+                data_station_window = pd.DataFrame(json.loads(response_station.text))
+                data_station = pd.concat([data_station, data_station_window])
+            except:
+                raise Exception('It was not possible to get the data, please verify your connection and try again.')
 
         data_station['Date'] = pd.to_datetime(
             data_station['DT_MEDICAO'] + data_station['HR_MEDICAO'].apply(lambda x: ' ' + x[:2]))
