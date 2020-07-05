@@ -364,7 +364,7 @@ class INMET:
         Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
         (Instituto Nacional de Meteorologia - INMET) database.
 
-        Only works for Automatic Stations
+        Only works for Automatic Stations.
 
         Returns a pandas hourly DataFrame with 17 variables for each day:
             - Tins - Instant Temperature (ºC)
@@ -388,12 +388,12 @@ class INMET:
         Parameters
         ----------
         station_code : string
-            Code of the station as a string
+            Code of the station as a string.
 
         Returns
         -------
         data : pandas DataFrame
-            The data of the selected station as a pandas DataFrame
+            The data of the selected station as a pandas DataFrame.
         """
         list_stations = INMET.list_stations(station_type='automatic')
         station = list_stations[list_stations.Code == station_code]
@@ -441,6 +441,7 @@ class INMET:
 
         return data_station
 
+
 class ONS:
     """
     Provide data from the National Electric System Operator (Operador Nacional do Sistema Elétrico - ONS) database.
@@ -449,7 +450,7 @@ class ONS:
     @staticmethod
     def daily_data():
         """
-         Return all the naturalized daily flow data of different reservoirs from the National Electric System Operator
+         Returns all the naturalized daily flow data of different reservoirs from the National Electric System Operator
          (Operador Nacional do Sistema Elétrico - ONS) database.
 
         Parameters
