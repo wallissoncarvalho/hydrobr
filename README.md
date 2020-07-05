@@ -412,7 +412,7 @@ help(hydrobr.SaveAs)
 
 Modules
 ------------
-Examples of usage are available at [HydroBr](https://wallissoncarvalho.github.io/hydrobr) 's page on my blog.
+Examples of usage are available at [HydroBr](https://wallissoncarvalho.github.io/HydroBr) 's page on my blog.
 
 
 Dependencies
