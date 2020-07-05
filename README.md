@@ -371,13 +371,6 @@ help(hydrobr.Plot)
      |      fig : plotly Figure
      |  
      |  ----------------------------------------------------------------------
-     |  Data descriptors defined here:
-     |  
-     |  __dict__
-     |      dictionary for instance variables (if defined)
-     |  
-     |  __weakref__
-     |      list of weak references to the object (if defined)
 ### SaveAs methods
 ```python
 help(hydrobr.SaveAs)
@@ -399,7 +392,7 @@ help(hydrobr.SaveAs)
      |      
      |      Returns
      |      -------
-     |  
+     |      Saved data in the path_save
      |  asc_daily_prec(data, path_save)
      |      Save each column of the precipitation stations DataFrame into a ".txt" file in the ASCII standard.
      |      
@@ -412,7 +405,7 @@ help(hydrobr.SaveAs)
      |      
      |      Returns
      |      -------
-     |  
+     |      Saved data in the path_save
      |  ----------------------------------------------------------------------
 
 
