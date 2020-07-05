@@ -73,9 +73,7 @@ class ANA:
                       'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
                       'telemetrica': ''}
             list_stations = Stations.__list_ana(params)
-        elif souce == 'ANAF':
-            path = os.path.dirname(os.path.abspath(__file__))
-            file_path = os.path.join(path, 'resources', 'ANAF_flow_stations.pkl')
+        elif source == 'ANAF':
             list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
                                         'resources/ANAF_flow_stations.csv')
             if city != '':
@@ -114,7 +112,7 @@ class ANA:
             params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '2', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
                       'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
                       'telemetrica': ''}
-            list_stations = Stations.__list_ana(params)
+            list_stations = ANA.__list_ana(params)
         elif source == 'ANAF':
             list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
                                         'resources/ANAF_prec_stations.csv')
@@ -208,7 +206,7 @@ class ANA:
             The data os each station as a column in a pandas DataFrame
         """
 
-        data_stations = Stations.__data_ana(list_station, '2', only_consisted=only_consisted)
+        data_stations = ANA.__data_ana(list_station, '2', only_consisted=only_consisted)
 
         return data_stations
 
