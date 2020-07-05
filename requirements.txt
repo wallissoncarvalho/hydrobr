@@ -2,4 +2,3 @@ pandas>=0.25
 tqdm>=4.31
 requests>=2.21
 plotly>=4.6.0
-matplotlib>=3.1
