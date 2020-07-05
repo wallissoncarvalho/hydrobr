@@ -268,7 +268,7 @@ class INMET:
     @staticmethod
     def list_stations(station_type='both'):
         """
-        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INEMET
+        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INMET
         inventory.
 
         Parameters
