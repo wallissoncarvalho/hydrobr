@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from versioneer import find_version
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 with open('requirements.txt') as req:
@@ -22,6 +22,7 @@ setup(
     author_email='cmwallisson@gmail.com',
     license='BSD 3-Clause License',
     packages=find_packages(),
+    include_package_data=True,
     classifiers=['Development Status :: 2 - Pre-Alpha',
                  'Environment :: Console',
                  'Operating System :: OS Independent',
