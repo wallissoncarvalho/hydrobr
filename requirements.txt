@@ -1,4 +1,4 @@
-pandas>=0.25,<0.26
-tqdm>=4.31,<4.32
-requests>=2.21,<2.22
-plotly>=4.6.0,<4.7
+pandas>=0.25
+tqdm>=4.31
+requests>=2.21
+plotly>=4.6.0
