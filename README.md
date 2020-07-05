@@ -5,14 +5,16 @@ HydroBr is an open-source package to work with Brazilian hydrometeorological tim
 Introduction
 ------------
 HydroBr is an open-source package for work with Brazilian hydrometeorological time series in Python. This package
-provides a connection with the Brazilian  National Water Agency (ANA), the Brazilian National Institute of Meteorology
-(Instituto Nacional de Meteorologia - INMET), and the National Electric System Operator (Operador Nacional do Sistema
-Elétrico - ONS) databases in order to help users to select, download, preprocess, and plot hydrometeorological data. 
+provides a connection with the Brazilian  National Water Agency (Agência Nacional de Águas - ANA), the Brazilian
+National Institute of Meteorology (Instituto Nacional de Meteorologia - INMET), and the National Electric System
+Operator (Operador Nacional do Sistema Elétrico - ONS) databases in order to help users to select, download,
+preprocess, and plot hydrometeorological data. 
 
 Installation
 ------------
-The released version of HydroBr is 0.1.  To install the released
-version, use ``pip install hydrobr``.
+The released version of HydroBr is 0.1.0.
+
+To install the released version, use ``pip install hydrobr``.
 
 You may install the latest development version by cloning the
 `GitHub` repository and using the setup script::
