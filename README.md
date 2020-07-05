@@ -12,7 +12,7 @@ preprocess, and plot hydrometeorological data.
 
 Installation
 ------------
-The released version of HydroBr is 0.1.0.
+The released version of HydroBr is 0.1.1.
 
 To install the released version, use ``pip install hydrobr``.
 
