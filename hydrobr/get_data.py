@@ -78,6 +78,7 @@ class ANA:
         elif source == 'ANAF':
             list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
                                         'resources/ANAF_flow_stations.csv')
+            list_stations.Code = list_stations.Code.apply(lambda x: f'{int(x):08}')
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -119,6 +120,7 @@ class ANA:
         elif source == 'ANAF':
             list_stations = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
                                         'resources/ANAF_prec_stations.csv')
+            list_stations.Code = list_stations.Code.apply(lambda x: f'{int(x):08}')
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
