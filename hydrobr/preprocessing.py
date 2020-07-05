@@ -128,7 +128,7 @@ class PreProcessing:
             elif method == 'mean':
                 monthly_series = series.groupby(pd.Grouper(freq='1MS')).mean().to_frame()
             else:
-                raise Exception('Please, select a valid method.')
+                raise Exception('Please select a valid method.')
             missing = series.isnull().groupby(pd.Grouper(freq='1MS')).sum().to_frame()
             to_drop = missing.loc[missing[column] > 0]  # A month with a missing data is a missing month
             monthly_series = monthly_series.drop(index=to_drop.index).sort_index()

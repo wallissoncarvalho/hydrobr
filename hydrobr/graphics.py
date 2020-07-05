@@ -4,8 +4,6 @@ import pandas as pd
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from math import ceil, log
-from plotly.offline import plot
-
 
 class Plot:
 
@@ -106,7 +104,6 @@ class Plot:
         fig.layout.xaxis.tickvals = pd.date_range('1/1/' + str(start_year), '12/31/' + str(finish_year + 1), freq='2AS')
         fig.layout.xaxis.ticktext = pd.date_range('1/1/' + str(start_year), '12/31/' + str(finish_year + 1),
                                                   freq='2AS').year
-        fig = go.FigureWidget(fig)
         return fig
 
     @staticmethod
