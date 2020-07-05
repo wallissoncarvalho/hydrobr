@@ -5,3 +5,4 @@ __version__ = '0.1.0'
 from hydrobr import get_data
 from hydrobr.graphics import Plot
 from hydrobr.preprocessing import PreProcessing
+from hydrobr.save import SaveAs
