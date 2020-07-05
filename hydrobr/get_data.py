@@ -356,10 +356,11 @@ class INMET:
             raise Exception('It was not possible to get the data, please verify your connection and try again.')
 
         data_station.rename(
-            columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RH',
-                     'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
+            columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RHmean',
+                     'UMID_MIN': 'RHmin', 'UMID_MAX': 'RHmax','INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
         data_station.index = pd.to_datetime(data_station.Date)
-        data_station = data_station[['Prec', 'Tmean', 'Tmax', 'Tmin', 'RH', 'SD']]
+        data_station.drop(['UF', 'Date', 'DC_NOME', 'CD_ESTACAO', 'VL_LATITUDE', 'VL_LONGITUDE'], axis=1, inplace=True)
+        data_station = data_station[sorted(data_station.columns)]
         data_station[data_station.columns] = data_station[data_station.columns].apply(pd.to_numeric, errors='coerce')
         data_station = data_station.dropna(how='all', axis=0)
         if filter:
