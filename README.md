@@ -1,4 +1,4 @@
-# HydroBr [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3930349.svg)](https://doi.org/10.5281/zenodo.3930349)
+# HydroBr [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3930349.svg)](https://doi.org/10.5281/zenodo.3930349) [![PythonVersion](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)
 
 HydroBr is an open-source package to work with Brazilian hydrometeorological time series.
 
