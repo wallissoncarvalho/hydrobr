@@ -11,6 +11,8 @@ install_requires = [r.strip() for r in require]
 setup(
     name='hydrobr',
     description='HydroBr is an open-source package to work with Brazilian hydrometeorological time series.',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version=find_version('hydrobr','__init__.py'),
     keywords='timeseries flow precipitation stages',
     author='Wallisson Moreira de Carvalho',
