@@ -108,3 +108,40 @@ class Plot:
                                                   freq='2AS').year
         fig = go.FigureWidget(fig)
         return fig
+
+    @staticmethod
+    def spatial_stations(list_stations, mapbox_access_token):
+        """
+        Make a spatial plot of the stations.
+
+        Parameters
+        ----------
+        list_stations : pandas DataFrame
+            A Pandas DataFrame that must contain Latitude, Longitude, Name, and Code columns.
+        mapbox_access_token : str
+            Mapbox access toke, which can be obtained at https://account.mapbox.com/access-tokens/
+
+        Returns
+        -------
+        fig : plotly Figure
+        """
+
+        if ('Latitude' not in list_stations.columns) or ('Longitude' not in list_stations.columns):
+            raise Exception('Longitude and Latitude columns are required')
+        list_stations['Text'] = 'Name: ' + list_stations.Name + '<br>Code: ' + list_stations.Code
+        list_stations[['Latitude', 'Longitude']] = list_stations[['Latitude', 'Longitude']].apply(pd.to_numeric,
+                                                                                                  errors='coerce')
+
+        # Creating the Figure
+        fig = go.Figure(go.Scattermapbox(lat=list_stations.Latitude.to_list(), lon=list_stations.Longitude.to_list(),
+                                         mode='markers', marker=go.scattermapbox.Marker(size=5),
+                                         text=list_stations.Text.to_list()))
+
+        # Updating the layout
+        fig.update_layout(autosize=True, hovermode='closest',
+                          mapbox=dict(accesstoken=mapbox_access_token, bearing=0,
+                                      center=dict(lat=list_stations.Latitude.sum() / len(list_stations),
+                                                  lon=list_stations.Longitude.sum() / len(list_stations)),
+                                      pitch=0, zoom=4))
+
+        return fig
