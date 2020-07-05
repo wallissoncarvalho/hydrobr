@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import json
+import os
 import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
@@ -75,7 +76,7 @@ class ANA:
         elif souce == 'ANAF':
             path = os.path.dirname(os.path.abspath(__file__))
             file_path = os.path.join(path, 'resources', 'ANAF_flow_stations.pkl')
-            list_stations = pd.read_csv(file_path)
+            list_stations = pd.read_pickle(file_path)
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -116,7 +117,7 @@ class ANA:
         elif source == 'ANAF':
             path = os.path.dirname(os.path.abspath(__file__))
             file_path = os.path.join(path, 'resources', 'ANAF_prec_stations.pkl')
-            list_stations = pd.read_csv(file_path)
+            list_stations = pd.read_pickle(file_path)
             if city != '':
                 list_stations = list_stations[list_stations['City'] == city]
             if state != '':
@@ -439,3 +440,27 @@ class INMET:
         data_station = data_station.reindex(date_index)
 
         return data_station
+
+class ONS:
+    """
+    Provide data from the National Electric System Operator (Operador Nacional do Sistema Elétrico - ONS) database.
+    """
+
+    @staticmethod
+    def daily_data():
+        """
+         Return all the naturalized daily flow data of different reservoirs from the National Electric System Operator
+         (Operador Nacional do Sistema Elétrico - ONS) database.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        data : pandas DataFrame
+            All the naturalized daily flow data as a pandas DataFrame, where each column refers to a specific reservoir.
+        """
+        path = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(path, 'resources', 'ONS_daily_flow.pkl')
+        data = pd.read_pickle(file_path, compression='bz2')
+        return data
