@@ -429,5 +429,5 @@ License
 
 How to cite
 ------------
-Wallisson Moreira de Carvalho. (2020, July 5). HydroBr: A Python package to work with Brazilian hydrometeorological
-time series. (Version 0.1.0). Zenodo. http://doi.org/10.5281/zenodo.3930840
+Wallisson Moreira de Carvalho. (2020, July 5). HydroBr: A Python package to work with Brazilian hydrometeorological time
+series. (Version 0.1.1). Zenodo. http://doi.org/10.5281/zenodo.3931027
