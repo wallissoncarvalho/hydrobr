@@ -14,6 +14,7 @@ A clear and concise description of what the bug is.
 Steps to reproduce the behavior:
 1. The method used '...'
 2. Inputs for the method '...'
+3. ...
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -21,8 +22,8 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Python Version(please complete the following information):**
-Python version that used to import hydrobr.
+**Python Version:**
+Your Python Version.
 
 **Additional context**
 Add any other context about the problem here.
