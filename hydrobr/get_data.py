@@ -240,6 +240,18 @@ class ANA:
 
     @staticmethod
     def prec_data(list_station, only_consisted=False):
+        raise DeprecationWarning('The method name have changed. Use prec() instead of prec_data()')
+
+    @staticmethod
+    def stage_data(list_station, only_consisted=False):
+        raise DeprecationWarning('The method name have changed. Use stage() instead of stage_data()')
+
+    @staticmethod
+    def flow_data(list_station, only_consisted=False):
+        raise DeprecationWarning('The method name have changed. Use flow() instead of flow_data()')
+
+    @staticmethod
+    def prec(list_station, only_consisted=False):
         """
         Get the precipitation station data series from a list of stations code.
 
@@ -261,7 +273,7 @@ class ANA:
         return data_stations
 
     @staticmethod
-    def stage_data(list_station, only_consisted=False):
+    def stage(list_station, only_consisted=False):
         """
         Get the stage station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
@@ -283,7 +295,7 @@ class ANA:
         return data_stations
 
     @staticmethod
-    def flow_data(list_station, only_consisted=False):
+    def flow(list_station, only_consisted=False):
         """
         Get the flow station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
