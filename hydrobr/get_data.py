@@ -1,11 +1,11 @@
 import calendar
 import datetime
 import json
-import os
 import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
+import numpy as np
 
 
 class ANA:
@@ -14,41 +14,69 @@ class ANA:
     """
 
     @staticmethod
-    def __list_ana(params):
-        check_params = ['codEstDE', 'codEstATE', 'tpEst', 'nmEst', 'nmRio', 'codSubBacia',
-                        'codBacia', 'nmMunicipio', 'nmEstado', 'sgResp', 'sgOper', 'telemetrica']
-        if list(params.keys()) != check_params:
-            raise Exception('You must pass the dictionary with the standard keys.')
-
-        response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroInventario', params,
-                                timeout=120.0)
-        tree = ET.ElementTree(ET.fromstring(response.content))
-        root = tree.getroot()
-
-        list_stations = pd.DataFrame()
-        index = 1
-
-        if params['tpEst'] != '1' and params['tpEst'] != '2':
-            raise Exception('Please choose a station type on the tpEst parameter.')
-
-        for station in tqdm(root.iter('Table')):
-            list_stations.at[index, 'Name'] = station.find('Nome').text
-            code = station.find('Codigo').text
-            list_stations.at[index, 'Code'] = f'{int(code):08}'
-            list_stations.at[index, 'Type'] = station.find('TipoEstacao').text
-            if params['tpEst'] == '1':
-                list_stations.at[index, 'DrainageArea'] = station.find('AreaDrenagem').text
-            list_stations.at[index, 'SubBasin'] = station.find('SubBaciaCodigo').text
-            list_stations.at[index, 'City'] = station.find('nmMunicipio').text
-            list_stations.at[index, 'State'] = station.find('nmEstado').text
-            list_stations.at[index, 'Responsible'] = station.find('ResponsavelSigla').text
-            list_stations.at[index, 'Latitude'] = float(station.find('Latitude').text)
-            list_stations.at[index, 'Longitude'] = float(station.find('Longitude').text)
-            index += 1
+    def __list_ana(params, telemetry=False):
+        if telemetry:
+            response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/ListaEstacoesTelemetricas', params,
+                                    timeout=120.0)
+            tree = ET.ElementTree(ET.fromstring(response.content))
+            root = tree.getroot()
+            list_stations = pd.DataFrame()
+            index = 1
+            for station in tqdm(root.iter('Table')):
+                list_stations.at[index, 'Name'] = station.find('NomeEstacao').text
+                code = station.find('CodEstacao').text
+                list_stations.at[index, 'Code'] = f'{int(code):08}'
+                list_stations.at[index, 'Status'] = station.find('StatusEstacao').text
+                list_stations.at[index, 'SubBasin'] = station.find('SubBacia').text
+                try:
+                    list_stations.at[index, 'City-State'] = station.find('Municipio-UF').text
+                except AttributeError:
+                    list_stations.at[index, 'City-State'] = np.nan
+                list_stations.at[index, 'Origem'] = station.find('Origem').text
+                list_stations.at[index, 'Responsible'] = station.find('Responsavel').text
+                list_stations.at[index, 'Elevation'] = station.find('Altitude').text
+                list_stations.at[index, 'Latitude'] = float(station.find('Latitude').text)
+                list_stations.at[index, 'Longitude'] = float(station.find('Longitude').text)
+                index += 1
+        else:
+            check_params = ['codEstDE', 'codEstATE', 'tpEst', 'nmEst', 'nmRio', 'codSubBacia',
+                            'codBacia', 'nmMunicipio', 'nmEstado', 'sgResp', 'sgOper', 'telemetrica']
+            if list(params.keys()) != check_params:
+                raise Exception('You must pass the dictionary with the standard keys.')
+            response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroInventario', params,
+                                    timeout=120.0)
+            tree = ET.ElementTree(ET.fromstring(response.content))
+            root = tree.getroot()
+            list_stations = pd.DataFrame()
+            index = 1
+            if params['tpEst'] != '1' and params['tpEst'] != '2':
+                raise Exception('Please choose a station type on the tpEst parameter.')
+            for station in tqdm(root.iter('Table')):
+                list_stations.at[index, 'Name'] = station.find('Nome').text
+                code = station.find('Codigo').text
+                list_stations.at[index, 'Code'] = f'{int(code):08}'
+                list_stations.at[index, 'Type'] = station.find('TipoEstacao').text
+                if params['tpEst'] == '1':
+                    list_stations.at[index, 'DrainageArea'] = station.find('AreaDrenagem').text
+                list_stations.at[index, 'SubBasin'] = station.find('SubBaciaCodigo').text
+                list_stations.at[index, 'City'] = station.find('nmMunicipio').text
+                list_stations.at[index, 'State'] = station.find('nmEstado').text
+                list_stations.at[index, 'Responsible'] = station.find('ResponsavelSigla').text
+                list_stations.at[index, 'Latitude'] = float(station.find('Latitude').text)
+                list_stations.at[index, 'Longitude'] = float(station.find('Longitude').text)
+                index += 1
         return list_stations
 
     @staticmethod
     def list_flow_stations(state='', city='', source='ANAF'):
+        raise DeprecationWarning('The method name have changed. Use list_flow() instead of list_flow_stations()')
+
+    @staticmethod
+    def list_prec_stations(state='', city='', source='ANAF'):
+        raise DeprecationWarning('The method name have changed. Use list_prec() instead of list_prec_stations()')
+
+    @staticmethod
+    def list_flow(state='', city='', source='ANAF'):
         """
         Searches for flow/stage stations registered at the Brazilian National Agency of Water inventory.
 
@@ -90,7 +118,7 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def list_prec_stations(state='', city='', source='ANAF'):
+    def list_prec(state='', city='', source='ANAF'):
         """
         Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA)
 
@@ -111,7 +139,6 @@ class ANA:
         list_stations : pandas DataFrame
             The selected list of stations as a pandas DataFrame
         """
-
         if source == 'ANA':
             params = {'codEstDE': '', 'codEstATE': '', 'tpEst': '2', 'nmEst': '', 'nmRio': '', 'codSubBacia': '',
                       'codBacia': '', 'nmMunicipio': city, 'nmEstado': state, 'sgResp': '', 'sgOper': '',
@@ -128,6 +155,23 @@ class ANA:
         else:
             raise Exception('Please, select a valid source.')
 
+        return list_stations
+
+    @staticmethod
+    def list_telemetry():
+        """
+        Searches for the telemetry stations registered at the Brazilian National Agency of Water inventory.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        list_stations : pandas DataFrame
+            The list of  all telemtry stations as a pandas DataFrame
+        """
+        params = {'statusEstacoes': '', 'origem': ''}
+        list_stations = ANA.__list_ana(params, telemetry=True)
         return list_stations
 
     @staticmethod
@@ -260,7 +304,6 @@ class ANA:
 
         return data_stations
 
-
 class INMET:
     """
     It provides a connection with the  Brazilian National Institute of Meteorology (Instituto Nacional de Meteorologia
@@ -359,7 +402,7 @@ class INMET:
 
         data_station.rename(
             columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RHmean',
-                     'UMID_MIN': 'RHmin', 'UMID_MAX': 'RHmax','INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
+                     'UMID_MIN': 'RHmin', 'UMID_MAX': 'RHmax', 'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
         data_station.index = pd.to_datetime(data_station.Date)
         data_station.drop(['UF', 'Date', 'DC_NOME', 'CD_ESTACAO', 'VL_LATITUDE', 'VL_LONGITUDE'], axis=1, inplace=True)
         data_station = data_station[sorted(data_station.columns)]
