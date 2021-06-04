@@ -1,5 +1,8 @@
 #Pycharm
 .idea/
+__pycache__/
+docs/
+tests/
 
 #Jupyter Checkpoints
 .ipynb_checkpoints/
