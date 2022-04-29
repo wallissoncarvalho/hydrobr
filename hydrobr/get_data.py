@@ -399,10 +399,19 @@ class INMET:
         if len(station) == 0:
             raise Exception('Please input a valid station code')
 
+        '''      
         try:
             response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
                 station['Start Operation'].to_list()[0].strftime("%Y-%m-%d"), pd.to_datetime("today").strftime("%Y-%m"
                                                                                                                "-%d"),
+                station_code),
+                timeout=120.0)
+        '''
+
+        try:
+            response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
+                (pd.to_datetime("today") - datetime.timedelta(days=120)).strftime("%Y-%m-%d"),
+                pd.to_datetime("today").strftime("%Y-%m-%d"),
                 station_code),
                 timeout=120.0)
         except:
