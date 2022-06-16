@@ -193,8 +193,12 @@ class ANA:
                     requests.ConnectionError):
                 return pd.DataFrame()
 
-            tree = ET.ElementTree(ET.fromstring(response.content))
-            root = tree.getroot()
+            try:
+                tree = ET.ElementTree(ET.fromstring(response.content))
+                root = tree.getroot()
+            except:
+                return pd.DataFrame()
+
             df = []
             for month in root.iter('SerieHistorica'):
                 code = month.find('EstacaoCodigo').text
