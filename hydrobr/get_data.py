@@ -6,6 +6,8 @@ import requests
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 import numpy as np
+from multiprocessing.pool import ThreadPool
+import warnings
 
 
 class ANA:
@@ -158,7 +160,7 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def list_telemetry():
+    def list_telemetric():
         """
         Searches for the telemetry stations registered at the Brazilian National Agency of Water inventory.
 
@@ -175,11 +177,13 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def __data_ana(list_station, data_type, only_consisted):
+    def __data_ana(list_station, data_type, only_consisted, threads=10):
+        if type(list_station) is not list:
+            list_station = [list_station]
         params = {'codEstacao': '', 'dataInicio': '', 'dataFim': '', 'tipoDados': data_type, 'nivelConsistencia': ''}
         data_types = {'3': ['Vazao{:02}'], '2': ['Chuva{:02}'], '1': ['Cota{:02}']}
-        data_stations = []
-        for station in tqdm(list_station):
+
+        def __call_request(station):
             params['codEstacao'] = str(station)
             try:
                 response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica', params,
@@ -187,7 +191,7 @@ class ANA:
             except (
                     requests.ConnectTimeout, requests.HTTPError, requests.ReadTimeout, requests.Timeout,
                     requests.ConnectionError):
-                continue
+                return pd.DataFrame()
 
             tree = ET.ElementTree(ET.fromstring(response.content))
             root = tree.getroot()
@@ -217,7 +221,7 @@ class ANA:
                 index_multi = pd.MultiIndex.from_tuples(index_multi, names=["Date", "Consistence"])
                 df.append(pd.DataFrame({code: data}, index=index_multi))
             if (len(df)) == 0:
-                continue
+                return pd.DataFrame()
             df = pd.concat(df)
             df = df.sort_index()
             if not only_consisted:
@@ -228,12 +232,19 @@ class ANA:
                 df = df[df.index.get_level_values(1) == 2]
                 df = df.reset_index(level=1, drop=True)
                 if (len(df)) == 0:
-                    continue
+                    return pd.DataFrame()
             series = df[code]
             date_index = pd.date_range(series.index[0], series.index[-1], freq='D')
             series = series.reindex(date_index)
-            data_stations.append(series)
-        data_stations = pd.concat(data_stations, axis=1)
+            return series
+
+        if len(list_station) < threads:
+            threads = len(list_station)
+
+        with ThreadPool(threads) as pool:
+            responses = list(tqdm(pool.imap(__call_request, list_station), total=len(list_station)))
+        responses = [response for response in responses if not response.empty]
+        data_stations = pd.concat(responses, axis=1)
         date_index = pd.date_range(data_stations.index[0], data_stations.index[-1], freq='D')
         data_stations = data_stations.reindex(date_index)
         return data_stations
@@ -251,7 +262,7 @@ class ANA:
         raise DeprecationWarning('The method name have changed. Use flow() instead of flow_data()')
 
     @staticmethod
-    def prec(list_station, only_consisted=False):
+    def prec(list_station, only_consisted=False, threads=10):
         """
         Get the precipitation station data series from a list of stations code.
 
@@ -261,19 +272,21 @@ class ANA:
             A list of with the stations code as strings.
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
+        threads: int
+            Number of parallel requisitions
 
         Returns
         -------
         data_stations : pandas DataFrame
-            The data os each station as a column in a pandas DataFrame
+            The data of each station as a column in a pandas DataFrame
         """
 
-        data_stations = ANA.__data_ana(list_station, '2', only_consisted=only_consisted)
+        data_stations = ANA.__data_ana(list_station, '2', only_consisted=only_consisted, threads=threads)
 
         return data_stations
 
     @staticmethod
-    def stage(list_station, only_consisted=False):
+    def stage(list_station, only_consisted=False, threads=10):
         """
         Get the stage station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
@@ -284,18 +297,20 @@ class ANA:
             A list of with the stations code as strings.
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
+        threads: int
+            Number of parallel requisitions
 
         Returns
         -------
         data_stations : pandas DataFrame
-            The data os each station as a column in a pandas DataFrame
+            The data of each station as a column in a pandas DataFrame
         """
 
-        data_stations = ANA.__data_ana(list_station, '1', only_consisted=only_consisted)
+        data_stations = ANA.__data_ana(list_station, '1', only_consisted=only_consisted, threads=threads)
         return data_stations
 
     @staticmethod
-    def flow(list_station, only_consisted=False):
+    def flow(list_station, only_consisted=False, threads=10):
         """
         Get the flow station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
@@ -306,15 +321,84 @@ class ANA:
             A list of with the stations code as strings.
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
+        threads: int
+            Number of parallel requisitions
 
         Returns
         -------
         data_stations : pandas DataFrame
             The data os each station as a column in a pandas DataFrame
         """
-        data_stations = ANA.__data_ana(list_station, '3', only_consisted=only_consisted)
-
+        data_stations = ANA.__data_ana(list_station, '3', only_consisted=only_consisted, threads=threads)
         return data_stations
+
+    @staticmethod
+    def telemetric(station_code, threads=10):
+        """
+        Get the Precipitation, Stage and Flow data for the ANA's telemetric stations as a DataFrame.
+
+        Parameters
+        ----------
+        station_code : str
+            The station code a string.
+        threads: int
+            Number of parallel requisitions
+
+        Returns
+        -------
+        data_station : pandas DataFrame
+            The data os each station as a column in a pandas DataFrame
+        """
+
+        if type(station_code) is not str:
+            raise Exception('This function only returns data for a single station at a time. The station_code must be '
+                            'a string.')
+        # Defining dates
+        start = pd.to_datetime('01/01/1950').strftime("%Y-%m-%d")
+        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='180D').to_list()
+        if start_dates[0].strftime("%Y-%m-%d") != start:
+            start_dates.insert(0, pd.to_datetime(start))
+        end_dates = []
+        for i in range(len(start_dates) - 1):
+            end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
+        end_dates.append(pd.to_datetime("today"))
+
+        def __call_request(date):
+            params = {'codEstacao': str(station_code), 'dataInicio': date[0].strftime("%d-%m-%Y"),
+                      'dataFim': date[1].strftime("%d-%m-%Y")}
+            try:
+                response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos',
+                                        params, timeout=120.0)
+            except:
+                raise Exception('It was not possible to get the data, please verify your connection and try again.')
+
+            try:
+                tree = ET.ElementTree(ET.fromstring(response.content))
+                root = tree.getroot()
+            except:
+                return pd.DataFrame()
+            date, prec, stage, flow = [], [], [], []
+            for data in root.iter('DadosHidrometereologicos'):
+                date.append(pd.to_datetime(data.find('DataHora').text, format="%Y-%m-%d %H:%M:%S"))
+                prec.append(data.find('Chuva').text)
+                stage.append(data.find('Nivel').text)
+                flow.append(data.find('Vazao').text)
+            df = pd.DataFrame({'Precipitation': prec, 'Stage': stage, 'Flow': flow}, index=date)
+            df.Precipitation = df.Precipitation.astype(float)
+            df.Stage = df.Stage.astype(float)
+            df.Flow = df.Flow.astype(float)
+            return df
+
+        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
+        with ThreadPool(threads) as pool:
+            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
+        responses = [response for response in responses if not response.empty]
+        if len(responses) == 0:
+            warnings.warn('There is no data available for this stations')
+            return pd.DataFrame()
+        data_station = pd.concat(responses)
+        data_station = data_station.sort_index()
+        return data_station
 
 class INMET:
     """
@@ -367,7 +451,7 @@ class INMET:
         return list_stations
 
     @staticmethod
-    def daily_data(station_code, filter=True):
+    def daily_data(station_code, filter=True, threads=10):
         """
         Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
         (Instituto Nacional de Meteorologia - INMET) database.
@@ -388,6 +472,8 @@ class INMET:
             There is stations with repeated registered data. If 'True' the function returns a panda DataFrame
             with the first occurrence of the date. If 'False' return a pandas DataFrame with, in some cases, repeated
             datetime index.
+        threads: int
+            Number of parallel requisitions
 
         Returns
         -------
@@ -399,19 +485,35 @@ class INMET:
         if len(station) == 0:
             raise Exception('Please input a valid station code')
 
-        try:
-            response_station = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
-                station['Start Operation'].to_list()[0].strftime("%Y-%m-%d"), pd.to_datetime("today").strftime("%Y-%m"
-                                                                                                               "-%d"),
-                station_code),
-                timeout=120.0)
-        except:
-            raise Exception('It was not possible to get the data, please verify your connection and try again.')
-        try:
-            data_station = pd.DataFrame(json.loads(response_station.text))
-        except:
-            raise Exception('It was not possible to get the data, please verify your connection and try again.')
+        # Defining dates
+        start = station['Start Operation'].to_list()[0].strftime("%Y-%m-%d")
+        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='60D').to_list()
+        if start_dates[0].strftime("%Y-%m-%d") != start:
+            start_dates.insert(0, pd.to_datetime(start))
+        end_dates = []
+        for i in range(len(start_dates) - 1):
+            end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
+        end_dates.append(pd.to_datetime("today"))
 
+        def __call_request(date):
+            start_date = date[0]
+            end_date = date[1]
+            try:
+                response = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
+                    start_date.strftime("%Y-%m-%d"),
+                    end_date.strftime("%Y-%m-%d"),
+                    station_code),
+                    timeout=120.0)
+                response = pd.DataFrame(json.loads(response.text))
+            except:
+                raise Exception('It was not possible to get the data, please verify your connection and try again.')
+            return response
+
+        # Getting the data
+        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
+        with ThreadPool(threads) as pool:
+            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
+        data_station = pd.concat(responses)
         data_station.rename(
             columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RHmean',
                      'UMID_MIN': 'RHmin', 'UMID_MAX': 'RHmax', 'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
@@ -427,7 +529,7 @@ class INMET:
         return data_station
 
     @staticmethod
-    def hourly_data(station_code):
+    def hourly_data(station_code, threads=10):
         """
         Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
         (Instituto Nacional de Meteorologia - INMET) database.
@@ -457,7 +559,8 @@ class INMET:
         ----------
         station_code : string
             Code of the station as a string.
-
+        threads: int
+            Number of parallel requisitions
         Returns
         -------
         data : pandas DataFrame
@@ -470,7 +573,7 @@ class INMET:
 
         # Defining dates
         start = station['Start Operation'].to_list()[0].strftime("%Y-%m-%d")
-        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='3Y').to_list()
+        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='60D').to_list()
         if start_dates[0].strftime("%Y-%m-%d") != start:
             start_dates.insert(0, pd.to_datetime(start))
         end_dates = []
@@ -478,22 +581,25 @@ class INMET:
             end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
         end_dates.append(pd.to_datetime("today"))
 
-        # Getting the data
-        data_station = pd.DataFrame()
-        for start_date, end_date in tqdm(zip(start_dates, end_dates)):
+        def __call_request(date):
+            start_date = date[0]
+            end_date = date[1]
             try:
-                response_station = requests.get(
+                response = requests.get(
                     'https://apitempo.inmet.gov.br/estacao/{}/{}/{}'.format(start_date.strftime("%Y-%m-%d"),
                                                                             end_date.strftime("%Y-%m-%d"),
                                                                             station_code), timeout=120.0)
+                response = pd.DataFrame(json.loads(response.text))
             except:
                 raise Exception('It was not possible to get the data, please verify your connection and try again.')
-            try:
-                data_station_window = pd.DataFrame(json.loads(response_station.text))
-                data_station = pd.concat([data_station, data_station_window])
-            except:
-                raise Exception('It was not possible to get the data, please verify your connection and try again.')
+            return response
 
+        # Getting the data
+        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
+        with ThreadPool(threads) as pool:
+            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
+
+        data_station = pd.concat(responses)
         data_station['Date'] = pd.to_datetime(
             data_station['DT_MEDICAO'] + data_station['HR_MEDICAO'].apply(lambda x: ' ' + x[:2]))
         data_station.index = data_station['Date']
@@ -512,7 +618,7 @@ class INMET:
         data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
         date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='H')
         data_station = data_station.reindex(date_index)
-
+        data_station = data_station.sort_index()
         return data_station
 
 
