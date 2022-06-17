@@ -192,7 +192,17 @@ class ANA:
                     requests.ConnectTimeout, requests.HTTPError, requests.ReadTimeout, requests.Timeout,
                     requests.ConnectionError):
                 return pd.DataFrame()
-
+            except http.client.IncompleteRead:
+                try:
+                    response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica',
+                                            params,
+                                            timeout=120.0)
+                except:
+                    print('It was not possible to get the station {} data'.format(station))
+                    return pd.DataFrame()
+            except:
+                print('It was not possible to get the station {} data'.format(station))
+                return pd.DataFrame()
             try:
                 tree = ET.ElementTree(ET.fromstring(response.content))
                 root = tree.getroot()
