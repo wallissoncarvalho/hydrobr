@@ -542,6 +542,7 @@ class INMET:
             data_station = data_station.reindex(date_index)
         data_station = data_station.convert_dtypes()
         data_station = data_station.astype(float)
+        data_station.index = pd.to_datetime(data_station.index)
         return data_station
 
     @staticmethod
@@ -637,6 +638,7 @@ class INMET:
         data_station = data_station.sort_index()
         data_station = data_station.convert_dtypes()
         data_station = data_station.astype(float)
+        data_station.index = pd.to_datetime(data_station.index)
         return data_station
 
 
