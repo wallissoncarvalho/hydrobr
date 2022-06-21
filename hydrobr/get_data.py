@@ -540,6 +540,8 @@ class INMET:
             data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
             date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='D')
             data_station = data_station.reindex(date_index)
+        data_station = data_station.convert_dtypes()
+        data_station = data_station.astype(float)
         return data_station
 
     @staticmethod
@@ -633,6 +635,8 @@ class INMET:
         date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='H')
         data_station = data_station.reindex(date_index)
         data_station = data_station.sort_index()
+        data_station = data_station.convert_dtypes()
+        data_station = data_station.astype(float)
         return data_station
 
 
