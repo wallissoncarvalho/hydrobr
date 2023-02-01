@@ -81,7 +81,6 @@ class ANA:
     def list_flow(state='', city='', source='ANAF'):
         """
         Searches for flow/stage stations registered at the Brazilian National Agency of Water inventory.
-
         Parameters
         ----------
         state : string
@@ -93,7 +92,6 @@ class ANA:
             (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
             with registered data.
             More information about ANAF: https://doi.org/10.5281/zenodo.3755065
-
         Returns
         -------
         list_stations : pandas DataFrame
@@ -123,7 +121,6 @@ class ANA:
     def list_prec(state='', city='', source='ANAF'):
         """
         Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA)
-
         Parameters
         ----------
         state : string
@@ -135,7 +132,6 @@ class ANA:
             (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations from ANA
             with registered data.
             More information about ANAF: https://doi.org/10.5281/zenodo.3755065
-
         Returns
         -------
         list_stations : pandas DataFrame
@@ -163,10 +159,8 @@ class ANA:
     def list_telemetric():
         """
         Searches for the telemetry stations registered at the Brazilian National Agency of Water inventory.
-
         Parameters
         ----------
-
         Returns
         -------
         list_stations : pandas DataFrame
@@ -180,11 +174,10 @@ class ANA:
     def __data_ana(list_station, data_type, only_consisted, threads=10):
         if type(list_station) is not list:
             list_station = [list_station]
-        params = {'codEstacao': '', 'dataInicio': '', 'dataFim': '', 'tipoDados': data_type, 'nivelConsistencia': ''}
         data_types = {'3': ['Vazao{:02}'], '2': ['Chuva{:02}'], '1': ['Cota{:02}']}
 
         def __call_request(station):
-            params['codEstacao'] = str(station)
+            params = {'codEstacao': str(station), 'dataInicio': '', 'dataFim': '', 'tipoDados': data_type, 'nivelConsistencia': ''}
             try:
                 response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica', params,
                                         timeout=120.0)
@@ -279,7 +272,6 @@ class ANA:
     def prec(list_station, only_consisted=False, threads=10):
         """
         Get the precipitation station data series from a list of stations code.
-
         Parameters
         ----------
         list_station : list of strings
@@ -288,7 +280,6 @@ class ANA:
             If True, returns only the data classified as consistent by the provider.
         threads: int
             Number of parallel requisitions
-
         Returns
         -------
         data_stations : pandas DataFrame
@@ -304,7 +295,6 @@ class ANA:
         """
         Get the stage station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
-
         Parameters
         ----------
         list_station : list of strings
@@ -313,7 +303,6 @@ class ANA:
             If True, returns only the data classified as consistent by the provider.
         threads: int
             Number of parallel requisitions
-
         Returns
         -------
         data_stations : pandas DataFrame
@@ -328,7 +317,6 @@ class ANA:
         """
         Get the flow station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
-
         Parameters
         ----------
         list_station : list of strings
@@ -337,7 +325,6 @@ class ANA:
             If True, returns only the data classified as consistent by the provider.
         threads: int
             Number of parallel requisitions
-
         Returns
         -------
         data_stations : pandas DataFrame
@@ -350,14 +337,12 @@ class ANA:
     def telemetric(station_code, threads=10):
         """
         Get the Precipitation, Stage and Flow data for the ANA's telemetric stations as a DataFrame.
-
         Parameters
         ----------
         station_code : str
             The station code a string.
         threads: int
             Number of parallel requisitions
-
         Returns
         -------
         data_station : pandas DataFrame
