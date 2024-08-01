@@ -207,7 +207,7 @@ class ANA:
                 code = month.find('EstacaoCodigo').text
                 code = f'{int(code):08}'
                 consist = int(month.find('NivelConsistencia').text)
-                date = pd.to_datetime(month.find('DataHora').text, dayfirst=True)
+                date = pd.to_datetime(month.find('DataHora').text, dayfirst=False)
                 date = pd.Timestamp(date.year, date.month, 1, 0)
                 last_day = calendar.monthrange(date.year, date.month)[1]
                 month_dates = pd.date_range(date, periods=last_day, freq='D')
