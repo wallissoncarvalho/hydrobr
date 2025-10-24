@@ -1,0 +1,23 @@
+site_name: HydroBr
+repo_url: https://github.com/wallissoncarvalho/hydrobr
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: google
+nav:
+  - Home: index.md
+  - Quick Start: getting-started.md
+  - Developer Guide: developer-guide.md
+  - Examples: examples.md
+  - API Reference:
+      - Core: api/core.md
+      - Modules: api/sources.md

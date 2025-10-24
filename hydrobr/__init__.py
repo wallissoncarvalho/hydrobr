@@ -1,8 +1,22 @@
-"""HydroBr is an open-source package to work with Brazilian hydrometeorological time series."""
+"""HydroBr - Open-source toolkit for acquiring, processing, and visualising Brazilian hydrometeorological datasets."""
 
-__version__ = '0.1.1'
+from __future__ import annotations
 
-from hydrobr import get_data
-from hydrobr.graphics import Plot
-from hydrobr.preprocessing import PreProcessing
-from hydrobr.save import SaveAs
+from importlib.metadata import PackageNotFoundError, version
+
+from . import  data_access, processing, spatial, view, save
+
+try:
+    __version__ = version("hydrobr")
+except PackageNotFoundError:  # pragma: no cover - fallback during local dev
+    __version__ = "0.0.0"
+
+# noinspection PyInterpreter
+__all__ = [
+    "__version__",
+    "data_access",
+    "processing",
+    "spatial",
+    "view",
+    "save",
+]
