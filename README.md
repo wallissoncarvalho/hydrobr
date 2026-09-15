@@ -11,6 +11,24 @@ python -m pip install pytest python-dotenv
 
 Esta documentação corresponde à branch de reestruturação, ainda não publicada no PyPI.
 
+## Documentação e exemplos
+
+- [Introdução](docs/index.md)
+- [Instalação](docs/installation.md)
+- [Guia da ANA](docs/ana.md)
+- [Guia do ONS](docs/ons.md)
+- [Guia do SAR](docs/sar.md)
+- [Referência rápida](docs/api.md)
+- [Exemplos executáveis](examples/)
+
+Depois da instalação, execute os exemplos a partir da raiz do repositório:
+
+```bash
+python -m examples.ons_hydraulic
+python -m examples.ana_historical
+python -m examples.sar_reservoirs
+```
+
 ## Dados históricos da ANA
 
 ```python
@@ -115,11 +133,88 @@ vazao = hydrobr.get_data.ANA.flow(["65310001"], source="auto", start="2003-03-01
 O argumento histórico `threads` é aceito por compatibilidade, mas o download é sequencial para reduzir bloqueios.
 Use `from hydrobr import ANA` para a nova interface com inventário, abrangência e comparação.
 
+## Dados abertos do ONS
+
+O ONS não exige credenciais para os dados abertos. A biblioteca consulta a API do catálogo e baixa os arquivos
+diretamente do armazenamento oficial do ONS, sem navegar pelo site.
+
+```python
+from hydrobr import ONS
+
+ons = ONS()
+
+# Todas as grandezas diárias publicadas: níveis, volume e diferentes vazões.
+dados = ons.daily_hydraulic_data("2025-01-01", "2025-01-31", reservoirs=74)
+
+# É possível selecionar pelo código da usina, identificador ou nome do reservatório.
+vazoes = ons.daily_hydraulic_data(
+    "2025-01-01", "2025-01-31", reservoirs=[74, "FURNAS"],
+    variables=["vazao_natural", "vazao_afluente", "vazao_defluente", "vazao_turbinada", "vazao_vertida"]
+
+# Dados horários e cadastro atual.
+horarios = ons.hourly_hydraulic_data("2026-09-01", "2026-09-02", reservoirs="GBM")
+reservatorios = ons.reservoirs()
+
+# Compatibilidade: vazão natural diária no formato largo, uma coluna por reservatório.
+vazao_natural = ons.daily_data("2025-01-01", "2025-12-31", reservoirs=74)
+```
+
+As publicações diárias estão separadas por ano e cada arquivo contém todos os reservatórios. As horárias estão
+separadas por mês. O catálogo não habilita consulta de linhas pelo DataStore, portanto o arquivo correspondente
+ao período precisa ser baixado antes da filtragem. A HydroBr guarda os arquivos em cache e baixa novamente apenas
+quando a data de atualização do catálogo muda ou quando `refresh=True` é informado.
+
+O conjunto diário oficial começa em 2000. A antiga cópia estática de vazões naturais, que começa em 1931 e termina
+em 2019, permanece no repositório como referência histórica, mas não é usada pela nova integração porque não possui um
+recurso equivalente no catálogo atual.
+
+O acesso genérico permite consultar todos os conjuntos e recursos publicados, inclusive formatos diferentes de CSV:
+
+```python
+catalogo = ons.catalog("hidrologia")
+arquivos = ons.resources("dados-hidrologicos-res")  # inclui os links diretos
+dados_csv = ons.read("dados-hidrologicos-res", years=[2024, 2025])
+caminhos = ons.download("dados-hidrologicos-res", file_format="PARQUET", years=2025)
+```
+
+Para conjuntos com mais de um arquivo, `read` e `download` exigem `years`, `months` ou `resource`. Isso evita que
+uma chamada genérica baixe acidentalmente todo o histórico.
+
+Consulte o [catálogo de dados hidráulicos do ONS](https://dados.ons.org.br/dataset/dados-hidrologicos-res).
+
+## Reservatórios do SAR
+
+O SAR da ANA complementa o ONS com os reservatórios do SIN e, principalmente, do Nordeste e Semiárido.
+O serviço é público e não exige credenciais:
+
+```python
+from hydrobr import SAR
+
+sar = SAR()
+reservatorios_sin = sar.reservoirs("sin")
+reservatorios_nordeste = sar.reservoirs("nordeste")
+reservatorios_outros = sar.reservoirs("outros")
+
+camargos = sar.history(19001, "2024-01-01", "2024-01-31", system="sin")
+vinte_cinco_de_marco = sar.history(12001, "2024-01-01", "2024-01-31", system="nordeste")
+atibainha = sar.history(29003, "2024-01-01", "2024-01-31", system="cantareira")
+```
+
+No SIN, o histórico contém volume útil, cota, afluência e defluência. No Nordeste e nos Outros Sistemas, contém
+cota, volume, capacidade e o código da estação Hidro associada. O intervalo é inclusivo e nenhuma lacuna é preenchida.
+
+Não foi localizado um Swagger novo para o SAR. O Swagger atual do HidroWebService não publica rotas de
+reservatórios; por isso, a implementação usa o Web Service oficial `SarWebService.asmx`. A operação oficial
+`ReservatoriosSIN` atualmente responde com erro HTTP 500. A biblioteca usa o catálogo do mapa oficial, que também
+fornece coordenadas, capacidade, bacia e códigos de outras entidades; se ele falhar, tenta as listas do Web Service e
+o seletor oficial do SIN. As séries sempre vêm do Web Service. Veja detalhes no [guia do SAR](docs/sar.md).
+
 ## Escopo desta etapa
 
-Implementados: inventário por código e séries convencionais diárias de chuva, cota e vazão nos dois serviços.
-Telemetria, listas gerais de estações, INMET e ONS ainda permanecem na implementação histórica em `get_data`;
-não foram migrados para a nova interface. Reservatórios ainda não foram implementados.
+Implementados: inventário por código e séries convencionais diárias de chuva, cota e vazão da ANA nos dois serviços;
+catálogo genérico do ONS, cadastro de reservatórios e grandezas hidráulicas diárias e horárias do ONS; listas e
+históricos operacionais de reservatórios do SIN e Nordeste no SAR.
+Telemetria e listas gerais de estações da ANA e INMET ainda permanecem na implementação histórica em `get_data`.
 As rotas atuais estão no [Swagger da ANA](https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html).
 
 Os utilitários históricos `Plot`, `PreProcessing` e `SaveAs` permanecem disponíveis.

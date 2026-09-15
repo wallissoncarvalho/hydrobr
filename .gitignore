@@ -2,9 +2,6 @@
 .idea/
 __pycache__/
 
-#Docs
-docs/
-
 #Jupyter Checkpoints
 .ipynb_checkpoints/
 

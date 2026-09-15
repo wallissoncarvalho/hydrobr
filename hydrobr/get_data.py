@@ -567,7 +567,7 @@ class ONS:
     """
 
     @staticmethod
-    def daily_data():
+    def daily_data(start="2000-01-01", end=None, reservoirs=None, refresh=False, **kwargs):
         """
          Returns all the naturalized daily flow data of different reservoirs from the National Electric System Operator
          (Operador Nacional do Sistema Elétrico - ONS) database.
@@ -580,8 +580,37 @@ class ONS:
         data : pandas DataFrame
             All the naturalized daily flow data as a pandas DataFrame, where each column refers to a specific reservoir.
         """
-        data = pd.read_csv('http://raw.githubusercontent.com/wallissoncarvalho/hydrobr/master/hydrobr/'
-                           'resources/ONS_daily_flow.csv')
-        data.index = pd.to_datetime(data.Date)
-        data.drop('Date', axis=1, inplace=True)
-        return data
+        from .ons import ONS as ONSService
+        return ONSService(**kwargs).natural_flow(start, end, reservoirs, refresh)
+
+    @staticmethod
+    def hydraulic_data(start="2000-01-01", end=None, reservoirs=None, variables=None, refresh=False, **kwargs):
+        """Retorna todas as grandezas hidráulicas diárias publicadas pelo ONS."""
+        from .ons import ONS as ONSService
+        return ONSService(**kwargs).daily_hydraulic_data(start, end, reservoirs, variables, refresh)
+
+    @staticmethod
+    def hourly_data(start=None, end=None, reservoirs=None, variables=None, refresh=False, **kwargs):
+        """Retorna todas as grandezas hidráulicas horárias publicadas pelo ONS."""
+        from .ons import ONS as ONSService
+        return ONSService(**kwargs).hourly_hydraulic_data(start, end, reservoirs, variables, refresh)
+
+    @staticmethod
+    def reservoirs(refresh=False, **kwargs):
+        """Retorna o cadastro atual de reservatórios do ONS."""
+        from .ons import ONS as ONSService
+        return ONSService(**kwargs).reservoirs(refresh)
+
+
+class SAR:
+    """Compatibilidade com a interface atual do Sistema de Acompanhamento de Reservatórios."""
+
+    @staticmethod
+    def reservoirs(system="sin", **kwargs):
+        from .sar import SAR as SARService
+        return SARService(**kwargs).reservoirs(system)
+
+    @staticmethod
+    def history(reservoir, start, end, system="sin", **kwargs):
+        from .sar import SAR as SARService
+        return SARService(**kwargs).history(reservoir, start, end, system)
