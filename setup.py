@@ -1,5 +1,11 @@
 from setuptools import setup, find_packages
-from versioneer import find_version
+import re
+from pathlib import Path
+
+
+def find_version(*parts):
+    text = Path(*parts).read_text(encoding="utf-8")
+    return re.search(r"^__version__ = ['\"]([^'\"]+)['\"]", text, re.MULTILINE).group(1)
 
 with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()

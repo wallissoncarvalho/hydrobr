@@ -171,105 +171,30 @@ class ANA:
         return list_stations
 
     @staticmethod
-    def __data_ana(list_station, data_type, only_consisted, threads=10):
-        if type(list_station) is not list:
-            list_station = [list_station]
-        data_types = {'3': ['Vazao{:02}'], '2': ['Chuva{:02}'], '1': ['Cota{:02}']}
-
-        def __call_request(station):
-            params = {'codEstacao': str(station), 'dataInicio': '', 'dataFim': '', 'tipoDados': data_type, 'nivelConsistencia': ''}
-            try:
-                response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica', params,
-                                        timeout=120.0)
-            except (
-                    requests.ConnectTimeout, requests.HTTPError, requests.ReadTimeout, requests.Timeout,
-                    requests.ConnectionError):
-                return pd.DataFrame()
-            except http.client.IncompleteRead:
-                try:
-                    response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica',
-                                            params,
-                                            timeout=120.0)
-                except:
-                    print('It was not possible to get the station {} data'.format(station))
-                    return pd.DataFrame()
-            except:
-                print('It was not possible to get the station {} data'.format(station))
-                return pd.DataFrame()
-            try:
-                tree = ET.ElementTree(ET.fromstring(response.content))
-                root = tree.getroot()
-            except:
-                return pd.DataFrame()
-
-            df = []
-            for month in root.iter('SerieHistorica'):
-                code = month.find('EstacaoCodigo').text
-                code = f'{int(code):08}'
-                consist = int(month.find('NivelConsistencia').text)
-                date = pd.to_datetime(month.find('DataHora').text, dayfirst=False)
-                date = pd.Timestamp(date.year, date.month, 1, 0)
-                last_day = calendar.monthrange(date.year, date.month)[1]
-                month_dates = pd.date_range(date, periods=last_day, freq='D')
-                data = []
-                list_consist = []
-                for i in range(last_day):
-                    value = data_types[params['tipoDados']][0].format(i + 1)
-                    try:
-                        data.append(float(month.find(value).text))
-                        list_consist.append(consist)
-                    except TypeError:
-                        data.append(month.find(value).text)
-                        list_consist.append(consist)
-                    except AttributeError:
-                        data.append(None)
-                        list_consist.append(consist)
-                index_multi = list(zip(month_dates, list_consist))
-                index_multi = pd.MultiIndex.from_tuples(index_multi, names=["Date", "Consistence"])
-                df.append(pd.DataFrame({code: data}, index=index_multi))
-            if (len(df)) == 0:
-                return pd.DataFrame()
-            df = pd.concat(df)
-            df = df.sort_index()
-            if not only_consisted:
-                drop_index = df.reset_index(level=1, drop=True).index.duplicated(keep='last')
-                df = df[~drop_index]
-                df = df.reset_index(level=1, drop=True)
-            else:
-                df = df[df.index.get_level_values(1) == 2]
-                df = df.reset_index(level=1, drop=True)
-                if (len(df)) == 0:
-                    return pd.DataFrame()
-            series = df[code]
-            date_index = pd.date_range(series.index[0], series.index[-1], freq='D')
-            series = series.reindex(date_index)
-            return series
-
-        if len(list_station) < threads:
-            threads = len(list_station)
-
-        with ThreadPool(threads) as pool:
-            responses = list(tqdm(pool.imap(__call_request, list_station), total=len(list_station)))
-        responses = [response for response in responses if not response.empty]
-        data_stations = pd.concat(responses, axis=1)
-        date_index = pd.date_range(data_stations.index[0], data_stations.index[-1], freq='D')
-        data_stations = data_stations.reindex(date_index)
-        return data_stations
+    def __data_ana(list_station, data_type, only_consisted, threads=10, **kwargs):
+        from .ana import ANA as ANAService
+        start, end = kwargs.pop("start", None), kwargs.pop("end", None)
+        client = ANAService(**kwargs)
+        method = {"1": client.stage, "2": client.prec, "3": client.flow}[data_type]
+        return method(list_station, only_consisted=only_consisted, start=start, end=end)
 
     @staticmethod
-    def prec_data(list_station, only_consisted=False):
-        raise DeprecationWarning('The method name have changed. Use prec() instead of prec_data()')
+    def prec_data(list_station, only_consisted=False, **kwargs):
+        """Alias histórico de prec()."""
+        return ANA.prec(list_station, only_consisted=only_consisted, **kwargs)
 
     @staticmethod
-    def stage_data(list_station, only_consisted=False):
-        raise DeprecationWarning('The method name have changed. Use stage() instead of stage_data()')
+    def stage_data(list_station, only_consisted=False, **kwargs):
+        """Alias histórico de stage()."""
+        return ANA.stage(list_station, only_consisted=only_consisted, **kwargs)
 
     @staticmethod
-    def flow_data(list_station, only_consisted=False):
-        raise DeprecationWarning('The method name have changed. Use flow() instead of flow_data()')
+    def flow_data(list_station, only_consisted=False, **kwargs):
+        """Alias histórico de flow()."""
+        return ANA.flow(list_station, only_consisted=only_consisted, **kwargs)
 
     @staticmethod
-    def prec(list_station, only_consisted=False, threads=10):
+    def prec(list_station, only_consisted=False, threads=10, **kwargs):
         """
         Get the precipitation station data series from a list of stations code.
         Parameters
@@ -279,19 +204,22 @@ class ANA:
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
         threads: int
-            Number of parallel requisitions
+            Mantido por compatibilidade; consultas convencionais são sequenciais.
+        **kwargs:
+            source ('auto', 'rest', 'legacy'), identifier, password, timeout, start e end.
+            Sem datas explícitas, consulta toda a abrangência do inventário.
         Returns
         -------
         data_stations : pandas DataFrame
             The data of each station as a column in a pandas DataFrame
         """
 
-        data_stations = ANA.__data_ana(list_station, '2', only_consisted=only_consisted, threads=threads)
+        data_stations = ANA.__data_ana(list_station, '2', only_consisted=only_consisted, threads=threads, **kwargs)
 
         return data_stations
 
     @staticmethod
-    def stage(list_station, only_consisted=False, threads=10):
+    def stage(list_station, only_consisted=False, threads=10, **kwargs):
         """
         Get the stage station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
@@ -302,18 +230,21 @@ class ANA:
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
         threads: int
-            Number of parallel requisitions
+            Mantido por compatibilidade; consultas convencionais são sequenciais.
+        **kwargs:
+            source ('auto', 'rest', 'legacy'), identifier, password, timeout, start e end.
+            Sem datas explícitas, consulta toda a abrangência do inventário.
         Returns
         -------
         data_stations : pandas DataFrame
             The data of each station as a column in a pandas DataFrame
         """
 
-        data_stations = ANA.__data_ana(list_station, '1', only_consisted=only_consisted, threads=threads)
+        data_stations = ANA.__data_ana(list_station, '1', only_consisted=only_consisted, threads=threads, **kwargs)
         return data_stations
 
     @staticmethod
-    def flow(list_station, only_consisted=False, threads=10):
+    def flow(list_station, only_consisted=False, threads=10, **kwargs):
         """
         Get the flow station data series from a list of stations code of the Brazilian National Water Agency
         (ANA) database.
@@ -324,13 +255,16 @@ class ANA:
         only_consisted : boolean, default False
             If True, returns only the data classified as consistent by the provider.
         threads: int
-            Number of parallel requisitions
+            Mantido por compatibilidade; consultas convencionais são sequenciais.
+        **kwargs:
+            source ('auto', 'rest', 'legacy'), identifier, password, timeout, start e end.
+            Sem datas explícitas, consulta toda a abrangência do inventário.
         Returns
         -------
         data_stations : pandas DataFrame
             The data os each station as a column in a pandas DataFrame
         """
-        data_stations = ANA.__data_ana(list_station, '3', only_consisted=only_consisted, threads=threads)
+        data_stations = ANA.__data_ana(list_station, '3', only_consisted=only_consisted, threads=threads, **kwargs)
         return data_stations
 
     @staticmethod

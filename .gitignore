@@ -7,3 +7,13 @@ docs/
 
 #Jupyter Checkpoints
 .ipynb_checkpoints/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Build and test artifacts
+build/
+*.egg-info/
+.pytest_cache/

@@ -1,433 +1,141 @@
-# HydroBr [![DOI](https://zenodo.org/badge/276715050.svg)](https://zenodo.org/badge/latestdoi/276715050) [![PythonVersion](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)
+# HydroBr
 
-HydroBr is an open-source package to work with Brazilian hydrometeorological time series.
+Ferramentas Python para séries hidrometeorológicas brasileiras.
 
-Introduction
-------------
-HydroBr is an open-source package for work with Brazilian hydrometeorological time series in Python. This package
-provides a connection with the Brazilian  National Water Agency (Agência Nacional de Águas - ANA), the Brazilian
-National Institute of Meteorology (Instituto Nacional de Meteorologia - INMET), and the National Electric System
-Operator (Operador Nacional do Sistema Elétrico - ONS) databases in order to help users to select, download,
-preprocess, and plot hydrometeorological data. 
+## Instalação desta versão em desenvolvimento
 
-Installation
-------------
-The released version of HydroBr is 0.1.1.
+```bash
+python -m pip install -e .
+python -m pip install pytest python-dotenv
+```
 
-To install the released version, use ``pip install hydrobr``.
+Esta documentação corresponde à branch de reestruturação, ainda não publicada no PyPI.
 
-You may install the latest development version by cloning the
-`GitHub` repository and using the setup script::
+## Dados históricos da ANA
 
-    git clone https://github.com/wallissoncarvalho/hydrobr.git
-    cd hydrobr
-    python setup.py install
+```python
+from hydrobr import ANA
 
-Modules - Documentation
-------------
-Currently, the *HydroBr* package has four modules:
+ana = ANA()  # usa credenciais do ambiente, ou o ServiceANA público
+print(ana.coverage("65310001", variable="flow"))
+vazao = ana.flow("65310001")
+cota = ana.stage("65310001")
+```
 
-* get_data - Functions that provide a connection with the Brazilian National Water Agency
-(Agência Nacional de Águas - ANA), the Brazilian National Institute of Meteorology
-(Instituto Nacional de Meteorologia - INMET), and the National Electric System Operator
-(Operador Nacional do Sistema Elétrico - ONS) databases.
+Cada consulta executa dois passos:
+1. Consulta o inventário para determinar início e fim da abrangência.
+2. Baixa todo o intervalo. Na REST, faz consultas por ano civil, com no máximo 366 dias, e reúne os registros.
 
-* Plot - You will have some data plot options, such as the Gantt (temporal data availability) graphic, Flow Duration
-Cuve, and plot for spatial station availability.
+Anos sem registros não interrompem a busca. Se o cadastro não informar fim, a consulta segue até hoje.
+A abrangência cadastral não garante dados em todos os dias. Para vazão, usamos o início mais antigo entre
+escala e descarga líquida, pois medições de descarga podem começar depois da série de vazões calculadas.
+Se não houver início cadastrado, informe `start` explicitamente.
 
-* PreProcessing - Presents a function to filter your data by dates, number of years with data, and missing percentage.
-Further, there is a function to convert your data.
+O resultado é um DataFrame com índice diário `Date` e uma coluna por código de estação, preservando zeros à esquerda.
+Dias sem valores ficam como `NaN`, inclusive nas extremidades do intervalo consultado. Use `dropna(how="all")`
+para visualizar somente datas com observações. Nenhuma interpolação ou preenchimento é aplicado.
+Os atributos `data.attrs` registram fonte, variável, unidade, filtro de consistência e períodos consultados.
 
-* SaveAs - Provides functions to save your data into a ".txt" file in the ASCII standard.
+### Credenciais e escolha da fonte
 
-The modules will be updated with new functions/methods as soon as possible. Contributions are welcome!
+Swagger é a documentação interativa da API REST HidroWebService.
+Obtenha acesso seguindo as [orientações oficiais da ANA](https://www.gov.br/ana/pt-br/assuntos/monitoramento-e-eventos-criticos/monitoramento-hidrologico/orientacoes-manuais/manuais/manual-hidrowebservice_publica.pdf/view).
 
-### Import HydroBr
+Configure `HYDROBR_ANA_IDENTIFIER` e `HYDROBR_ANA_PASSWORD` no ambiente.
+Para testes locais, copie `.env.example` para `.env`, preencha os valores e carregue explicitamente:
+
+```python
+from dotenv import load_dotenv
+from hydrobr import ANA
+
+load_dotenv(".env")  # a biblioteca não lê .env automaticamente
+ana = ANA(source="auto")
+```
+
+- `auto`: credenciais disponíveis selecionam REST; sem elas, usa ServiceANA.
+- `rest`: exige identificador e senha.
+- `legacy`: força ServiceANA, mesmo com credenciais no ambiente.
+
+Também é possível passar `identifier` e `password` ao construtor. Evite gravá-los em scripts versionados.
+Uma falha de autenticação é informada, sem mudança automática de fonte.
+Tokens rejeitados com HTTP 401 são renovados uma vez.
+O ServiceANA é testado pela própria consulta: indisponibilidade gera uma mensagem orientando o uso de credenciais;
+HTTP 429 recebe tentativas limitadas e, persistindo, erro de limitação de consultas.
+Falhas de resposta não são convertidas em séries vazias nem resultados parciais bem-sucedidos.
+
+### Variáveis e períodos
+
+```python
+vazao = ana.flow(["65310001"], start="2003-03-01", end="2009-07-31")  # m³/s
+cota = ana.stage("65310001", start="2005-01-01", end="2005-12-31")  # cm
+# chuva = ana.prec("CODIGO_PLUVIOMETRICO", start="2000-01-01", end="2020-12-31")  # mm
+
+consistidos = ana.flow("65310001", only_consisted=True)
+```
+
+Datas explícitas substituem os limites do cadastro. Consultas começando no meio do mês buscam
+o registro mensal completo e recortam os dias ao intervalo solicitado.
+Por padrão, registros duplicados por dia priorizam o maior nível de consistência (2 sobre 1).
+Com `only_consisted=True`, somente nível 2 é usado. Sem registros desse nível, a coluna fica inteiramente `NaN`.
+Não se substitui um valor ausente consistido por um bruto.
+
+### Comparar os dois serviços
+
+```python
+from dotenv import load_dotenv
+from hydrobr import ANA
+
+load_dotenv(".env")
+rest = ANA(source="rest")
+legacy = ANA(source="legacy")
+
+# Sem start/end, cada fonte consulta toda a abrangência do seu inventário.
+vazao_rest = rest.flow("65310001")
+vazao_legacy = legacy.flow("65310001")
+print(ANA.compare(vazao_rest, vazao_legacy, tolerance=0.005001))
+
+cota_rest = rest.stage("65310001")
+cota_legacy = legacy.stage("65310001")
+print(ANA.compare(cota_rest, cota_legacy, tolerance=0.000051))
+```
+
+A comparação informa dias válidos, dias comuns, observações exclusivas de cada fonte e diferenças absolutas.
+As tolerâncias acima são exemplos baseados na comparação desta estação; não são garantias de equivalência
+para outras estações. Não arredondamos os valores baixados.
+
+### Compatibilidade com get_data
+
 ```python
 import hydrobr
-```
-### Data from ANA
-```python
-help(hydrobr.get_data.ANA)
+
+vazao = hydrobr.get_data.ANA.flow(["65310001"], source="auto", start="2003-03-01", end="2009-07-31")
 ```
 
-    Help on class ANA in module hydrobr.get_data:
-    
-    class ANA(builtins.object)
-     |  It provides a connection with the Brazilian National Water Agency (Agência Nacional de Águas - ANA) database
-     |  
-     |  Static methods defined here:
-     |  
-     |  flow_data(list_station, only_consisted=False)
-     |      Get the flow station data series from a list of stations code of the Brazilian National Water Agency
-     |      (ANA) database.
-     |      
-     |      Parameters
-     |      ----------
-     |      list_station : list of strings
-     |          A list of with the stations code as strings.
-     |      only_consisted : boolean, default False
-     |          If True, returns only the data classified as consistent by the provider.
-     |      
-     |      Returns
-     |      -------
-     |      data_stations : pandas DataFrame
-     |          The data os each station as a column in a pandas DataFrame
-     |  
-     |  list_flow_stations(state='', city='', source='ANAF')
-     |      Searches for flow/stage stations registered at the Brazilian National Agency of Water inventory.
-     |      
-     |      Parameters
-     |      ----------
-     |      state : string
-     |          Brazilian state name where the stations are located (e.g., Rio de Janeiro)
-     |      city : string
-     |          Brazilian city name where the stations are located (e.g., Rio de Itaperuna)
-     |      source: string, default 'ANAF'
-     |          The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water
-     |          Agency (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations
-     |          from ANA with registered data.
-     |          More information about ANAF: https://doi.org/10.5281/zenodo.3755065
-     |      
-     |      Returns
-     |      -------
-     |      list_stations : pandas DataFrame
-     |          The selected list of stations as a pandas DataFrame
-     |  
-     |  list_prec_stations(state='', city='', source='ANAF')
-     |      Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA)
-     |      
-     |      Parameters
-     |      ----------
-     |      state : string
-     |          Brazilian state name where the stations are located (e.g., Rio de Janeiro)
-     |      city : string
-     |          Brazilian city name where the stations are located (e.g., Rio de Itaperuna)
-     |      source: string, default 'ANA'
-     |          The source to look for the data. 'ANA' to get the list of stations from the Brazilian National Water
-     |          Agency (ANA) database, or 'ANAF' to get the filtered list of stations that contain only the stations
-     |          from ANA with registered data.
-     |          More information about ANAF: https://doi.org/10.5281/zenodo.3755065
-     |      
-     |      Returns
-     |      -------
-     |      list_stations : pandas DataFrame
-     |          The selected list of stations as a pandas DataFrame
-     |  
-     |  prec_data(list_station, only_consisted=False)
-     |      Get the precipitation station data series from a list of stations code.
-     |      
-     |      Parameters
-     |      ----------
-     |      list_station : list of strings
-     |          A list of with the stations code as strings.
-     |      only_consisted : boolean, default False
-     |          If True, returns only the data classified as consistent by the provider.
-     |      
-     |      Returns
-     |      -------
-     |      data_stations : pandas DataFrame
-     |          The data os each station as a column in a pandas DataFrame
-     |  
-     |  stage_data(list_station, only_consisted=False)
-     |      Get the stage station data series from a list of stations code of the Brazilian National Water Agency
-     |      (ANA) database.
-     |      
-     |      Parameters
-     |      ----------
-     |      list_station : list of strings
-     |          A list of with the stations code as strings.
-     |      only_consisted : boolean, default False
-     |          If True, returns only the data classified as consistent by the provider.
-     |      
-     |      Returns
-     |      -------
-     |      data_stations : pandas DataFrame
-     |          The data os each station as a column in a pandas DataFrame
-     |  
-     |  ----------------------------------------------------------------------    
-### Data from INMET
-```python
-help(hydrobr.get_data.INMET)
+`get_data.ANA.flow`, `stage` e `prec` agora usam a mesma implementação.
+O argumento histórico `threads` é aceito por compatibilidade, mas o download é sequencial para reduzir bloqueios.
+Use `from hydrobr import ANA` para a nova interface com inventário, abrangência e comparação.
+
+## Escopo desta etapa
+
+Implementados: inventário por código e séries convencionais diárias de chuva, cota e vazão nos dois serviços.
+Telemetria, listas gerais de estações, INMET e ONS ainda permanecem na implementação histórica em `get_data`;
+não foram migrados para a nova interface. Reservatórios ainda não foram implementados.
+As rotas atuais estão no [Swagger da ANA](https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html).
+
+Os utilitários históricos `Plot`, `PreProcessing` e `SaveAs` permanecem disponíveis.
+
+## Testes
+
+```bash
+python -m pytest -q
 ```
 
-    Help on class INMET in module hydrobr.get_data:
-    
-    class INMET(builtins.object)
-     |  It provides a connection with the  Brazilian National Institute of Meteorology (Instituto Nacional de
-     |  Meteorologia - INMET) database.
-     |  
-     |  Static methods defined here:
-     |  
-     |  daily_data(station_code, filter=True)
-     |      Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
-     |      (Instituto Nacional de Meteorologia - INMET) database.
-     |      
-     |      Returns a pandas daily DataFrame with six variables for each day:
-     |          - Prec - Precipitation (mm)
-     |          - Tmean - Daily mean Temperature (ºC)
-     |          - Tmax - Maximum Temperature (ºC)
-     |          - Tmin - Minimum Temperature (ºC)
-     |          - RH - Relative Humidity (%)
-     |          - SD - Sunshine Duration (hours)
-     |      
-     |      Parameters
-     |      ----------
-     |      station_code : string
-     |          Code of the station as a string
-     |      filter: boolean, default True
-     |          There is stations with repeated registered data. If 'True' the function returns a panda DataFrame
-     |          with the first occurrence of the date. If 'False' return a pandas DataFrame with, in some cases,
-     |          repeated datetime index.
-     |      
-     |      Returns
-     |      -------
-     |      data : pandas DataFrame
-     |          The data of the selected station as a pandas DataFrame
-     |  
-     |  hourly_data(station_code)
-     |      Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
-     |      (Instituto Nacional de Meteorologia - INMET) database.
-     |      
-     |      Only works for Automatic Stations.
-     |      
-     |      Returns a pandas hourly DataFrame with 17 variables for each day:
-     |          - Tins - Instant Temperature (ºC)
-     |          - Tmax - Maximum Temperature (ºC)
-     |          - Tmin - Minimum Temperature (ºC)
-     |          - RHins - Instant Relative Humidity (%)
-     |          - RHmax - Maximum Relative Humidity (%)
-     |          - RHmin - Minimum Relative Humidity (%)
-     |          - DPins - Instant Dew Point Temperature (ºC)
-     |          - DPmax - Maximum Dew Point Temperature (ºC)
-     |          - DPmin - Minimum Dew Point Temperature (ºC)
-     |          - Pins - Instant Pressure (hPa)
-     |          - Pmax - Maximum Pressure (hPa)
-     |          - Pmin - Minimum Pressure (hPa)
-     |          - Wspeed - Wind Speed (m/s)
-     |          - Wdir - Wind direction (º)
-     |          - Wgust - Wind gust (m/s)
-     |          - Rad - Global Radiation (kJ/m²)
-     |          - Prec - Precipitation (mm)
-     |      
-     |      Parameters
-     |      ----------
-     |      station_code : string
-     |          Code of the station as a string.
-     |      
-     |      Returns
-     |      -------
-     |      data : pandas DataFrame
-     |          The data of the selected station as a pandas DataFrame.
-     |  
-     |  list_stations(station_type='both')
-     |      Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INMET
-     |      inventory.
-     |      
-     |      Parameters
-     |      ----------
-     |      station_type : string, default 'both'
-     |          The type of station. 'both' to get the list of automatic and manual gauge stations, 'automatic' to get only
-     |          the automatic gauge stations, and 'conventional' to get only the conventional gauge stations.
-     |      Returns
-     |      -------
-     |      list_stations : pandas DataFrame
-     |          The selected list of stations as a pandas DataFrame
-     |  
-     |  ----------------------------------------------------------------------    
-### Data from ONS
-```python
-help(hydrobr.get_data.ONS)
-```
+Os testes usam respostas simuladas e não exigem credenciais. Não carregue `.env` para rodá-los.
+Os exemplos acima executam consultas reais; a abrangência completa pode exigir muitas chamadas.
 
-    Help on class ONS in module hydrobr.get_data:
-    
-    class ONS(builtins.object)
-     |  Provide data from the National Electric System Operator (Operador Nacional do Sistema Elétrico - ONS) database.
-     |  
-     |  Static methods defined here:
-     |  
-     |  daily_data()
-     |       Returns all the naturalized daily flow data of different reservoirs from the National Electric System
-     |       Operator (Operador Nacional do Sistema Elétrico - ONS) database.
-     |      
-     |      Parameters
-     |      ----------
-     |      
-     |      Returns
-     |      -------
-     |      data : pandas DataFrame
-     |          All the naturalized daily flow data as a pandas DataFrame, where each column refers to a specific
-     |          reservoir.  
-     |  ----------------------------------------------------------------------    
-### PreProcessing methods
-```python
-help(hydrobr.PreProcessing)
-```
+## Licença e citação
 
-    Help on class PreProcessing in module hydrobr.preprocessing:
-    
-    class PreProcessing(builtins.object)
-     |  Static methods defined here:
-     |  
-     |  daily_to_monthly(data, method='sum')
-     |      Transform a time series of daily data into a time series monthly data.
-     |      
-     |      In the conversion process a month with a day missing data is considered as a missing month.
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-     |      method: str, default sum
-     |          The method used to convert. If 'sum', the monthly data will be the sum of the daily data. If 'mean', the
-     |          monthly data will be the mean of the daily data.
-     |      
-     |      Returns
-     |      -------
-     |      monthly_data : pandas DataFrame
-     |          The  monthly pandas DataFrame
-     |  
-     |  stations_filter(data, n_years=10, missing_percentage=5, start_date=False, end_date=False)
-     |      A composed method to filter stations. 
-     |      
-     |      First, the method filters the stations data by the Start Date and the End Date, it its passed. After that,
-     |      the is selected only the stations with at least a defined number of years between the first date and the
-     |      last date of the station. At the end is selected the stations that contains at least one window of data with
-     |      the number of years and a maximum missing data percentage. 
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-     |      n_years: int, default 10
-     |          The minimum number of years of registered data for the station between the first date and the end date.
-     |      missing_percentage: int, default 5
-     |           The maximum missing data percentage in a window with n_years.
-     |           A number between 0 and 100
-     |      start_date : int, float, str, default False
-     |          The desired start date for the output DataFrame.
-     |          See: pandas.to_datetime documentation if have doubts about the date format
-     |      end_date: int, float, str, default False
-     |          The desired end date for the output DataFrame.
-     |          See: pandas.to_datetime documentation if have doubts about the date format
-     |      
-     |      Returns
-     |      -------
-     |      data : pandas DataFrame
-     |          A pandas DataFrame with only the filtered stations
-     |  
-     |  ---------------------------------------------------------------------- 
-### Plot methods
-```python
-help(hydrobr.Plot)
-```
+[BSD-3-Clause](LICENSE).
 
-    Help on class Plot in module hydrobr.graphics:
-    
-    class Plot(builtins.object)
-     |  Static methods defined here:
-     |  
-     |  fdc(data, y_log_scale=True)
-     |      Make a flow duration curve plot.
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station..
-     |      y_log_scale : boolean, default True
-     |          Defines if the the plotting y-axis will be in the logarithmic scale.
-     |      
-     |      Returns
-     |      -------
-     |      fig : plotly Figure
-     |  
-     |  gantt(data, monthly=True)
-     |      Make a Gantt plot, which shows the temporal data availability for each station.
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station..
-     |      monthly : boolean, default True
-     |          Defines if the availability count of the data will be monthly to obtain a more fluid graph.
-     |      
-     |      Returns
-     |      -------
-     |      fig : plotly Figure
-     |  
-     |  spatial_stations(list_stations, mapbox_access_token)
-     |      Make a spatial plot of the stations.
-     |      
-     |      Parameters
-     |      ----------
-     |      list_stations : pandas DataFrame
-     |          A Pandas DataFrame that must contain Latitude, Longitude, Name, and Code columns.
-     |      mapbox_access_token : str
-     |          Mapbox access toke, which can be obtained at https://account.mapbox.com/access-tokens/
-     |      
-     |      Returns
-     |      -------
-     |      fig : plotly Figure
-     |  
-     |  ----------------------------------------------------------------------
-### SaveAs methods
-```python
-help(hydrobr.SaveAs)
-```
-    Help on class SaveAs in module hydrobr.save:
-    
-    class SaveAs(builtins.object)
-     |  Static methods defined here:
-     |  
-     |  asc_daily_flow(data, path_save)
-     |      Save each column of the flow stations DataFrame into a ".txt" file in the ASCII standard.
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-     |      path_save: string
-     |          The computer location where the ".txt" files will be saved.
-     |      
-     |      Returns
-     |      -------
-     |      Saved data in the path_save
-     |
-     |  asc_daily_prec(data, path_save)
-     |      Save each column of the precipitation stations DataFrame into a ".txt" file in the ASCII standard.
-     |      
-     |      Parameters
-     |      ----------
-     |      data : pandas DataFrame
-     |          A Pandas daily DataFrame with DatetimeIndex where each column corresponds to a station.
-     |      path_save: string
-     |          The computer location where the ".txt" files will be saved.
-     |      
-     |      Returns
-     |      -------
-     |      Saved data in the path_save
-     |  ----------------------------------------------------------------------
-
-
-Modules
-------------
-Examples of usage are available at [HydroBr](https://wallissoncarvalho.github.io/HydroBr) 's page on my blog.
-
-
-Dependencies
-------------
-- [NumPy](https://numpy.org/)
-- [Pandas](https://pandas.pydata.org/)
-- [Plotly](https://plotly.com/python/)
-- [Requests](https://requests.readthedocs.io/en/master/)
-- [tqdm](https://github.com/tqdm/tqdm)
-
-License
-------------
-[BSD 3-Clause License](https://github.com/wallissoncarvalho/hydrobr/blob/master/LICENSE)
-
-How to cite
-------------
-Wallisson Moreira de Carvalho. (2020, July 5). HydroBr: A Python package to work with Brazilian hydrometeorological time
-series. (Version 0.1.1). Zenodo. http://doi.org/10.5281/zenodo.3931027
+Wallisson Moreira de Carvalho (2020). HydroBr: A Python package to work with Brazilian hydrometeorological
+time series, versão 0.1.1. [DOI: 10.5281/zenodo.3931027](https://doi.org/10.5281/zenodo.3931027).
