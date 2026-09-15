@@ -13,6 +13,9 @@ ANA(identifier=None, password=None, source="auto", timeout=60, session=None)
 | `flow(stations, only_consisted=False, start=None, end=None)` | Vazão diária em m³/s |
 | `stage(stations, only_consisted=False, start=None, end=None)` | Cota diária em cm |
 | `prec(stations, only_consisted=False, start=None, end=None)` | Precipitação diária em mm |
+| `telemetry_coverage(station)` | Início e fim telemétricos cadastrados |
+| `telemetry(station, start=None, end=None, detailed=False)` | Chuva, cota e vazão subdiárias; campos brutos opcionais na REST |
+| `telemetric(...)` | Alias compatível de `telemetry` |
 | `ANA.compare(rest, legacy, tolerance=0.005001)` | Resumo de cobertura e diferenças |
 
 ## ONS

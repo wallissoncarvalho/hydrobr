@@ -268,70 +268,10 @@ class ANA:
         return data_stations
 
     @staticmethod
-    def telemetric(station_code, threads=10):
-        """
-        Get the Precipitation, Stage and Flow data for the ANA's telemetric stations as a DataFrame.
-        Parameters
-        ----------
-        station_code : str
-            The station code a string.
-        threads: int
-            Number of parallel requisitions
-        Returns
-        -------
-        data_station : pandas DataFrame
-            The data os each station as a column in a pandas DataFrame
-        """
-
-        if type(station_code) is not str:
-            raise Exception('This function only returns data for a single station at a time. The station_code must be '
-                            'a string.')
-        # Defining dates
-        start = pd.to_datetime('01/01/1950').strftime("%Y-%m-%d")
-        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='180D').to_list()
-        if start_dates[0].strftime("%Y-%m-%d") != start:
-            start_dates.insert(0, pd.to_datetime(start))
-        end_dates = []
-        for i in range(len(start_dates) - 1):
-            end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
-        end_dates.append(pd.to_datetime("today"))
-
-        def __call_request(date):
-            params = {'codEstacao': str(station_code), 'dataInicio': date[0].strftime("%d-%m-%Y"),
-                      'dataFim': date[1].strftime("%d-%m-%Y")}
-            try:
-                response = requests.get('http://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos',
-                                        params, timeout=120.0)
-            except:
-                raise Exception('It was not possible to get the data, please verify your connection and try again.')
-
-            try:
-                tree = ET.ElementTree(ET.fromstring(response.content))
-                root = tree.getroot()
-            except:
-                return pd.DataFrame()
-            date, prec, stage, flow = [], [], [], []
-            for data in root.iter('DadosHidrometereologicos'):
-                date.append(pd.to_datetime(data.find('DataHora').text, format="%Y-%m-%d %H:%M:%S"))
-                prec.append(data.find('Chuva').text)
-                stage.append(data.find('Nivel').text)
-                flow.append(data.find('Vazao').text)
-            df = pd.DataFrame({'Precipitation': prec, 'Stage': stage, 'Flow': flow}, index=date)
-            df.Precipitation = df.Precipitation.astype(float)
-            df.Stage = df.Stage.astype(float)
-            df.Flow = df.Flow.astype(float)
-            return df
-
-        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
-        with ThreadPool(threads) as pool:
-            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
-        responses = [response for response in responses if not response.empty]
-        if len(responses) == 0:
-            warnings.warn('There is no data available for this stations')
-            return pd.DataFrame()
-        data_station = pd.concat(responses)
-        data_station = data_station.sort_index()
-        return data_station
+    def telemetric(station_code, threads=10, start=None, end=None, detailed=False, **kwargs):
+        """Retorna telemetria de uma estação; ``threads`` é mantido por compatibilidade."""
+        from .ana import ANA as ANAService
+        return ANAService(**kwargs).telemetry(station_code, start=start, end=end, detailed=detailed)
 
 class INMET:
     """

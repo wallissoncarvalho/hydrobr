@@ -15,7 +15,7 @@ a unidade e as ausências dos dados visíveis, sem interpolar ou preencher valor
 
 | Fonte | Dados implementados | Autenticação |
 |---|---|---|
-| ANA | Inventário por estação; vazão, cota e precipitação convencionais diárias | REST com credenciais ou ServiceANA legado sem credenciais |
+| ANA | Inventário; séries convencionais diárias; telemetria subdiária por estação | REST com credenciais ou ServiceANA legado sem credenciais |
 | ONS | Catálogo aberto; cadastro de reservatórios; dados hidráulicos diários e horários | Não exige credenciais |
 | SAR | Cadastro e histórico operacional do SIN, Nordeste e Outros Sistemas Hídricos | Não exige credenciais |
 

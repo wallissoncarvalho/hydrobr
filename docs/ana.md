@@ -37,6 +37,41 @@ consultada por ano civil, respeitando o limite de 366 dias por requisição. Ano
 O resultado tem índice diário `Date`, uma coluna por estação e `NaN` nos dias sem observação. Registros duplicados
 priorizam o maior nível de consistência. Use `only_consisted=True` para aceitar somente nível 2.
 
+## Telemetria
+
+```python
+rest = ANA(source="rest")
+legacy = ANA(source="legacy")
+
+periodo = rest.telemetry_coverage("56425000")
+adotada_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02")
+adotada_legacy = legacy.telemetry("56425000", "2024-03-01", "2024-03-02")
+detalhada_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02", detailed=True)
+```
+
+`telemetry()` consulta uma estação por vez. Sem `start` e `end`, usa `Data_Periodo_Telemetrica_Inicio/Fim` do
+inventário; fim em aberto significa hoje. A API REST aceita no máximo 30 dias por chamada, enquanto o legado é
+consultado em blocos de 180 dias. A biblioteca reúne, ordena e elimina apenas horários duplicados.
+
+As duas fontes produzem as mesmas colunas comuns:
+
+| Coluna | Conteúdo | Unidade |
+|---|---|---|
+| `precipitation` | Chuva adotada no intervalo | mm |
+| `stage` | Cota adotada | cm |
+| `flow` | Vazão adotada | m³/s |
+| `station` | Código da estação | — |
+| `*_status` | Estado informado pela REST | — |
+| `updated_at` | Atualização na REST | — |
+
+O ServiceANA não fornece estados nem data de atualização, portanto essas colunas ficam vazias no resultado legado.
+`detailed=True` usa `HidroinfoanaSerieTelemetricaDetalhada/v1` e acrescenta bateria, chuva acumulada, cotas de sensor,
+display e manual, pressão atmosférica, temperatura da água e temperatura interna. O ServiceANA não possui resposta
+detalhada equivalente e rejeita essa opção explicitamente.
+
+Os registros são preservados na frequência publicada pela estação. Não há conversão para frequência regular,
+acumulação, interpolação ou preenchimento de lacunas.
+
 ## Comparar REST e serviço legado
 
 ```python
@@ -56,3 +91,4 @@ tolerância usa a unidade da série e deve ser definida conforme a precisão ade
 - Credenciais incompletas ou rejeitadas geram erro de autenticação; não ocorre fallback silencioso.
 - Se o ServiceANA estiver indisponível, a mensagem orienta a configurar credenciais da REST.
 - Respostas inválidas não são convertidas em séries vazias.
+- `detailed=True` com `source="legacy"` gera erro porque a fonte não publica os campos brutos.

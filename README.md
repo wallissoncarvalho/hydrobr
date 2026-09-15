@@ -26,6 +26,7 @@ Depois da instalação, execute os exemplos a partir da raiz do repositório:
 ```bash
 python -m examples.ons_hydraulic
 python -m examples.ana_historical
+python -m examples.ana_telemetry
 python -m examples.sar_reservoirs
 ```
 
@@ -121,6 +122,27 @@ A comparação informa dias válidos, dias comuns, observações exclusivas de c
 As tolerâncias acima são exemplos baseados na comparação desta estação; não são garantias de equivalência
 para outras estações. Não arredondamos os valores baixados.
 
+### Telemetria
+
+```python
+from hydrobr import ANA
+
+rest = ANA(source="rest")       # usa as credenciais do ambiente
+legacy = ANA(source="legacy")   # ServiceANA sem credenciais
+
+print(rest.telemetry_coverage("56425000"))
+telemetria_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02")
+telemetria_legacy = legacy.telemetry("56425000", "2024-03-01", "2024-03-02")
+detalhada = rest.telemetry("56425000", "2024-03-01", "2024-03-02", detailed=True)
+```
+
+As duas fontes retornam uma linha por horário e as colunas comuns `precipitation`, `stage` e `flow`. A REST também
+informa os estados de validação e a data de atualização. Com `detailed=True`, acrescenta bateria, chuva acumulada,
+cotas bruta/manual/display, pressão e temperaturas; esse modo não existe no legado.
+
+Sem datas, a abrangência telemétrica é obtida no inventário. A REST é dividida em consultas de até 30 dias e o
+ServiceANA em blocos de 180 dias. Nenhuma reamostragem, interpolação ou preenchimento é aplicado.
+
 ### Compatibilidade com get_data
 
 ```python
@@ -129,7 +151,7 @@ import hydrobr
 vazao = hydrobr.get_data.ANA.flow(["65310001"], source="auto", start="2003-03-01", end="2009-07-31")
 ```
 
-`get_data.ANA.flow`, `stage` e `prec` agora usam a mesma implementação.
+`get_data.ANA.flow`, `stage`, `prec` e `telemetric` agora usam a mesma implementação.
 O argumento histórico `threads` é aceito por compatibilidade, mas o download é sequencial para reduzir bloqueios.
 Use `from hydrobr import ANA` para a nova interface com inventário, abrangência e comparação.
 
@@ -211,10 +233,10 @@ o seletor oficial do SIN. As séries sempre vêm do Web Service. Veja detalhes n
 
 ## Escopo desta etapa
 
-Implementados: inventário por código e séries convencionais diárias de chuva, cota e vazão da ANA nos dois serviços;
+Implementados: inventário, séries convencionais diárias e telemetria por estação da ANA nos dois serviços;
 catálogo genérico do ONS, cadastro de reservatórios e grandezas hidráulicas diárias e horárias do ONS; listas e
 históricos operacionais de reservatórios do SIN e Nordeste no SAR.
-Telemetria e listas gerais de estações da ANA e INMET ainda permanecem na implementação histórica em `get_data`.
+As listas gerais de estações da ANA e a integração do INMET ainda permanecem na implementação histórica em `get_data`.
 As rotas atuais estão no [Swagger da ANA](https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html).
 
 Os utilitários históricos `Plot`, `PreProcessing` e `SaveAs` permanecem disponíveis.

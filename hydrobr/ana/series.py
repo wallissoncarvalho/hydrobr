@@ -8,6 +8,7 @@ import pandas as pd
 
 from .client import ANAClient
 from .exceptions import ANAResponseError
+from .telemetry import TelemetryMixin
 
 
 VARIABLES = {
@@ -89,7 +90,7 @@ def daily_series(rows, variable, code, start, end, only_consisted=False):
     return series.reindex(pd.date_range(start, end, name="Date")).rename(code)
 
 
-class ANA:
+class ANA(TelemetryMixin):
     """Baixa séries diárias via REST ou ServiceANA. Credenciais vêm do ambiente ou dos argumentos."""
 
     def __init__(self, identifier=None, password=None, source="auto", timeout=60, session=None):
