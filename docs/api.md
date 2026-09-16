@@ -2,6 +2,9 @@
 
 ## Processamento hidrológico
 
+`HydroSeries(data, variable, unit, source, flags=None)` registra série diária, unidade, origem e flags manuais.
+`clean()` retorna valores válidos sem alterar os brutos; `audit(period="year"/"month", ...)` resume cobertura.
+
 | Método | Retorno |
 |---|---|
 | `HydroAnalysis.annual_maxima(data, duration=1, variable="precipitation", ...)` | Máximas e auditoria por estação/ano |
@@ -15,6 +18,13 @@
 | `HydroAnalysis.runoff_ratio(precipitation, flow, basin_area_km2, ...)` | Lâmina escoada e coeficiente anual |
 | `HydroAnalysis.cluster(signatures, k, method="ward", ...)` | Grupos Ward ou K-means |
 | `HydroAnalysis.evaluate_clusters(signatures, max_k=8, ...)` | Silhouette e Davies–Bouldin por k |
+| `HydroAnalysis.low_flow_minima(data, duration=7, ...)` | Mínimos anuais móveis e auditoria |
+| `HydroAnalysis.low_flow_frequency(minima, return_periods=..., method="empirical")` | Quantis inferiores, incluindo 7Q10 |
+| `HydroAnalysis.flow_duration(data, exceedance=0.95, ...)` | Q95 ou outra vazão de permanência diária |
+| `HydroAnalysis.low_flow_spells(data, threshold, min_duration=1, ...)` | Frequência anual de estiagens abaixo de um limiar |
+| `HydroAnalysis.precipitation_extremes(data, base_period=None, ...)` | Índices ETCCDI diários anuais e auditoria |
+| `HydroAnalysis.spi(data, scale_months=3, base_period=...)` | SPI mensal e auditoria de cobertura |
+| `HydroAnalysis.seasonal_trends(monthly, serial_method="none", ...)` | MK sazonal, Sen, lag12 e p por blocos opcional |
 | `Plot.trend(annual, station, result=None)` | Série anual e reta de Sen |
 | `Plot.change_point(annual, results, station, test="pettitt")` | Série e candidato a ruptura |
 | `Plot.teleconnections(results, station, lag_years=0)` | Correlações por índice climático |

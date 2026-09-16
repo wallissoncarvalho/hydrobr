@@ -13,6 +13,7 @@ python -m examples.inmet_wis2
 python -m examples.climate_indices
 python -m examples.nasa_power_point
 python -m examples.hydrological_analysis
+python -m examples.quality_and_extremes
 ```
 
 - `ons_hydraulic.py`: consulta cadastro, coordenadas e grandezas hidráulicas diárias.
@@ -25,6 +26,7 @@ python -m examples.hydrological_analysis
 - `nasa_power_point.py`: consulta catálogo e dados diários/mensais por coordenada, sem credenciais.
 - `hydrological_analysis.py`: exemplo autônomo de máximas, temporadas secas, tendências, rupturas, teleconexões,
   dupla massa, assinaturas e clusters.
+- `quality_and_extremes.py`: exemplo sintético de contrato/auditoria, 7Q10, ETCCDI, SPI e tendência sazonal.
 
 Os exemplos da ANA e do CEMADEN usam credenciais do ambiente. A ANA também possui fallback legado. Nenhum exemplo
 contém segredos.

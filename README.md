@@ -23,6 +23,7 @@ Esta documentação corresponde à branch de reestruturação, ainda não public
 - [Índices climáticos observados NOAA](docs/climate.md)
 - [NASA POWER por coordenada](docs/nasa_power.md)
 - [Processamento hidrológico](docs/analysis.md)
+- [Qualidade, estiagem, extremos e SPI](docs/quality_methods.md)
 - [Referência rápida](docs/api.md)
 - [Exemplos executáveis](examples/)
 
@@ -39,6 +40,7 @@ python -m examples.sar_reservoirs
 python -m examples.climate_indices
 python -m examples.nasa_power_point
 python -m examples.hydrological_analysis
+python -m examples.quality_and_extremes
 ```
 
 ## Dados históricos da ANA
