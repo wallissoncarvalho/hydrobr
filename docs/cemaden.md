@@ -76,15 +76,25 @@ enviado pela estação; com `at`, usa a data/hora de referência.
 Para intervalos extensos, prefira o processamento assíncrono do próprio CEMADEN:
 
 ```python
+# Primeira execução: envia o pedido e pode encerrar o programa em seguida.
 pedido = cemaden.schedule("2020-01-01", "2024-12-31", station="355540612A", file_format="CSV")
-print(pedido)  # {'id': ...}
+print(pedido)  # {'id': 123}
+```
 
+O processamento ocorre nos servidores do CEMADEN. Não é necessário deixar o computador ou o código Python rodando.
+O pedido fica associado à conta usada no login. Mais tarde — até mesmo em outro dia e em uma nova execução — consulte
+o estado dos pedidos dessa mesma conta:
+
+```python
+# Segunda execução: consulta o que já foi processado pelo CEMADEN.
 concluidos = cemaden.schedules("CONCLUIDA")
 print(concluidos[["id", "status", "link"]])
 ```
 
 O CEMADEN informa que o processamento pode levar de alguns minutos a até três dias. `schedules()` aceita os estados
-`PENDENTE`, `CONCLUIDA`, `REJEITADA` e `EXPIRADA`; o campo `link` aponta para o arquivo quando ele estiver pronto.
+`PENDENTE`, `CONCLUIDA`, `REJEITADA` e `EXPIRADA`; o campo `link` aponta para o arquivo quando ele estiver pronto. A
+HydroBr não fica consultando continuamente nem mantém um processo em segundo plano: o usuário decide quando executar
+`schedules()` novamente.
 
 ## Compatibilidade
 
