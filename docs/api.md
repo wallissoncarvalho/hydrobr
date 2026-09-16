@@ -1,5 +1,19 @@
 # Referência rápida da API
 
+## NASA POWER
+
+```python
+NASAPOWER(timeout=60, session=None)
+```
+
+| Método | Retorno |
+|---|---|
+| `parameters(temporal="daily", community="AG")` | Catálogo oficial de códigos, descrições e unidades |
+| `daily(latitude, longitude, start, end, parameters, ...)` | Série diária por ponto de grade |
+| `hourly(latitude, longitude, start, end, parameters, ...)` | Série horária por ponto de grade |
+| `monthly(latitude, longitude, start, end, parameters, ...)` | Série mensal; agregado anual em `attrs["annual"]` |
+| `climatology(latitude, longitude, parameters, start=None, end=None, ...)` | Climatologia mensal e anual |
+
 ## Índices climáticos NOAA
 
 ```python

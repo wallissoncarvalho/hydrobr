@@ -21,6 +21,7 @@ Esta documentação corresponde à branch de reestruturação, ainda não public
 - [Guia do ONS](docs/ons.md)
 - [Guia do SAR](docs/sar.md)
 - [Índices climáticos observados NOAA](docs/climate.md)
+- [NASA POWER por coordenada](docs/nasa_power.md)
 - [Referência rápida](docs/api.md)
 - [Exemplos executáveis](examples/)
 
@@ -35,6 +36,7 @@ python -m examples.cemaden_observations
 python -m examples.inmet_wis2
 python -m examples.sar_reservoirs
 python -m examples.climate_indices
+python -m examples.nasa_power_point
 ```
 
 ## Dados históricos da ANA

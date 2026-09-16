@@ -7,6 +7,7 @@ from hydrobr.ana import ANA, ANAClient
 from hydrobr.cemaden import CEMADEN, CEMADENError
 from hydrobr.climate import ClimateIndices, ClimateIndexError
 from hydrobr.inmet import INMET, INMETError
+from hydrobr.nasa_power import NASAPOWER, NASAPOWERError
 from hydrobr.ons import ONS, ONSError
 from hydrobr.sar import SAR, SARError
 from hydrobr.graphics import Plot

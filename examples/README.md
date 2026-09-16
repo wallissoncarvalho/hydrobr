@@ -11,6 +11,7 @@ python -m examples.ana_extended
 python -m examples.cemaden_observations
 python -m examples.inmet_wis2
 python -m examples.climate_indices
+python -m examples.nasa_power_point
 ```
 
 - `ons_hydraulic.py`: consulta cadastro, coordenadas e grandezas hidráulicas diárias.
@@ -20,6 +21,7 @@ python -m examples.climate_indices
 - `cemaden_observations.py`: lista sensores e consulta chuva observada em alta frequência.
 - `inmet_wis2.py`: lista uma estação WIGOS, consulta a abrangência disponível e baixa observações SYNOP.
 - `climate_indices.py`: consulta índices ENSO observados da NOAA.
+- `nasa_power_point.py`: consulta catálogo e dados diários/mensais por coordenada, sem credenciais.
 
 Os exemplos da ANA e do CEMADEN usam credenciais do ambiente. A ANA também possui fallback legado. Nenhum exemplo
 contém segredos.

@@ -12,7 +12,8 @@ a unidade e as ausências dos dados visíveis, sem interpolar ou preencher valor
 5. Consulte [reservatórios e grandezas do ONS](ons.md).
 6. Consulte [reservatórios do SIN e Nordeste no SAR](sar.md).
 7. Consulte [índices climáticos observados NOAA](climate.md).
-8. Veja a [referência rápida da API](api.md).
+8. Consulte [estimativas climáticas NASA POWER por coordenada](nasa_power.md).
+9. Veja a [referência rápida da API](api.md).
 
 ## Fontes disponíveis
 
@@ -24,6 +25,7 @@ a unidade e as ausências dos dados visíveis, sem interpolar ou preencher valor
 | ONS | Catálogo aberto; cadastro de reservatórios; dados hidráulicos diários e horários | Não exige credenciais |
 | SAR | Cadastro e histórico operacional do SIN, Nordeste e Outros Sistemas Hídricos | Não exige credenciais |
 | NOAA/CPC/PSL | Índices climáticos observados | Não exige credenciais |
+| NASA POWER | Estimativas em grade horárias, diárias, mensais e climatológicas por coordenada | Não exige credenciais |
 
 ## Princípios dos resultados
 
