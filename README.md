@@ -16,6 +16,7 @@ Esta documentação corresponde à branch de reestruturação, ainda não public
 - [Introdução](docs/index.md)
 - [Instalação](docs/installation.md)
 - [Guia da ANA](docs/ana.md)
+- [Guia do CEMADEN](docs/cemaden.md)
 - [Guia do ONS](docs/ons.md)
 - [Guia do SAR](docs/sar.md)
 - [Referência rápida](docs/api.md)
@@ -27,6 +28,7 @@ Depois da instalação, execute os exemplos a partir da raiz do repositório:
 python -m examples.ons_hydraulic
 python -m examples.ana_historical
 python -m examples.ana_telemetry
+python -m examples.cemaden_observations
 python -m examples.sar_reservoirs
 ```
 
@@ -131,17 +133,19 @@ rest = ANA(source="rest")       # usa as credenciais do ambiente
 legacy = ANA(source="legacy")   # ServiceANA sem credenciais
 
 print(rest.telemetry_coverage("56425000"))
+serie_completa = rest.telemetry("56425000")
 telemetria_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02")
 telemetria_legacy = legacy.telemetry("56425000", "2024-03-01", "2024-03-02")
 detalhada = rest.telemetry("56425000", "2024-03-01", "2024-03-02", detailed=True)
 ```
 
-As duas fontes retornam uma linha por horário e as colunas comuns `precipitation`, `stage` e `flow`. A REST também
-informa os estados de validação e a data de atualização. Com `detailed=True`, acrescenta bateria, chuva acumulada,
-cotas bruta/manual/display, pressão e temperaturas; esse modo não existe no legado.
+As duas fontes retornam uma linha por horário e as colunas `station`, `precipitation`, `stage` e `flow`. Estados das
+variáveis adotadas e data de atualização não fazem parte da saída pública. Com `detailed=True`, a REST acrescenta
+bateria, chuva acumulada, cotas bruta/manual/display, pressão e temperaturas; esse modo não existe no legado.
 
-Sem datas, a abrangência telemétrica é obtida no inventário. A REST é dividida em consultas de até 30 dias e o
-ServiceANA em blocos de 180 dias. Nenhuma reamostragem, interpolação ou preenchimento é aplicado.
+Sem datas, a abrangência telemétrica cadastrada é obtida no inventário; ela pode começar antes do primeiro dado real.
+A REST é dividida em consultas de até 30 dias e o ServiceANA em blocos de 180 dias. Os atributos `registered_period`
+e `observed_period` distinguem cadastro e dados retornados. Nenhuma reamostragem, interpolação ou preenchimento é aplicado.
 
 ### Compatibilidade com get_data
 
@@ -154,6 +158,30 @@ vazao = hydrobr.get_data.ANA.flow(["65310001"], source="auto", start="2003-03-01
 `get_data.ANA.flow`, `stage`, `prec` e `telemetric` agora usam a mesma implementação.
 O argumento histórico `threads` é aceito por compatibilidade, mas o download é sequencial para reduzir bloqueios.
 Use `from hydrobr import ANA` para a nova interface com inventário, abrangência e comparação.
+
+## Dados observacionais do CEMADEN
+
+O CEMADEN fornece chuva, níveis e outras variáveis ambientais em alta frequência pela Plataforma de Entrega de
+Dados. Crie uma conta em [ped.cemaden.gov.br](https://ped.cemaden.gov.br) e configure
+`HYDROBR_CEMADEN_EMAIL` e `HYDROBR_CEMADEN_PASSWORD`:
+
+```python
+from hydrobr import CEMADEN
+
+cemaden = CEMADEN()
+estacoes = cemaden.stations(uf="SP", station_type=1)
+sensores = cemaden.sensors(1)
+chuva = cemaden.data("355540612A", "2024-01-01", "2024-01-31", sensor=10)
+acumulados = cemaden.accumulated(3555406, station="355540612A")
+```
+
+A biblioteca obtém e renova o JWT automaticamente. Também aceita `HYDROBR_CEMADEN_TOKEN`. Os dados permanecem em
+formato longo e horário UTC, com os códigos de qualificação publicados. Consultas paginadas são percorridas
+automaticamente; para históricos extensos, use `schedule()` e acompanhe o arquivo com `schedules()`. Veja o
+[guia do CEMADEN](docs/cemaden.md).
+
+O limite oficial é respeitado automaticamente: 12 requisições/minuto para usuários externos. Contas formalmente
+parceiras podem usar `CEMADEN(partner=True)` para o limite de 180/minuto.
 
 ## Dados abertos do ONS
 
@@ -234,6 +262,7 @@ o seletor oficial do SIN. As séries sempre vêm do Web Service. Veja detalhes n
 ## Escopo desta etapa
 
 Implementados: inventário, séries convencionais diárias e telemetria por estação da ANA nos dois serviços;
+inventário, sensores, observações, acumulados e históricos agendados do CEMADEN;
 catálogo genérico do ONS, cadastro de reservatórios e grandezas hidráulicas diárias e horárias do ONS; listas e
 históricos operacionais de reservatórios do SIN e Nordeste no SAR.
 As listas gerais de estações da ANA e a integração do INMET ainda permanecem na implementação histórica em `get_data`.

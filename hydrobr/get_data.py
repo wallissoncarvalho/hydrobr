@@ -554,3 +554,26 @@ class SAR:
     def history(reservoir, start, end, system="sin", **kwargs):
         from .sar import SAR as SARService
         return SARService(**kwargs).history(reservoir, start, end, system)
+
+
+class CEMADEN:
+    """Compatibilidade com a interface atual da Plataforma de Entrega de Dados."""
+
+    @staticmethod
+    def stations(**kwargs):
+        from .cemaden import CEMADEN as CEMADENService
+        client_keys = {key: kwargs.pop(key) for key in list(kwargs)
+                       if key in {"email", "password", "token", "partner", "timeout", "session"}}
+        return CEMADENService(**client_keys).stations(**kwargs)
+
+    @staticmethod
+    def data(station, start, end, sensor=None, network=11, **kwargs):
+        from .cemaden import CEMADEN as CEMADENService
+        return CEMADENService(**kwargs).data(station, start, end, sensor=sensor, network=network)
+
+    @staticmethod
+    def recent(uf, **kwargs):
+        from .cemaden import CEMADEN as CEMADENService
+        client_keys = {key: kwargs.pop(key) for key in list(kwargs)
+                       if key in {"email", "password", "token", "partner", "timeout", "session"}}
+        return CEMADENService(**client_keys).recent(uf, **kwargs)

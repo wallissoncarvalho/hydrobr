@@ -44,14 +44,20 @@ rest = ANA(source="rest")
 legacy = ANA(source="legacy")
 
 periodo = rest.telemetry_coverage("56425000")
+toda_a_serie = rest.telemetry("56425000")  # usa automaticamente a abrangência do inventário
 adotada_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02")
 adotada_legacy = legacy.telemetry("56425000", "2024-03-01", "2024-03-02")
 detalhada_rest = rest.telemetry("56425000", "2024-03-01", "2024-03-02", detailed=True)
 ```
 
-`telemetry()` consulta uma estação por vez. Sem `start` e `end`, usa `Data_Periodo_Telemetrica_Inicio/Fim` do
-inventário; fim em aberto significa hoje. A API REST aceita no máximo 30 dias por chamada, enquanto o legado é
+`telemetry()` consulta uma estação por vez. Sem `start` e `end`, consulta o inventário e usa
+`Data_Periodo_Telemetrica_Inicio/Fim` na REST ou `PeriodoTelemetricaInicio/Fim` no legado; fim em aberto significa
+hoje. Esses campos foram confirmados nas duas fontes. Eles representam a abrangência cadastrada e podem anteceder o
+primeiro registro efetivamente disponível. A API REST aceita no máximo 30 dias por chamada, enquanto o legado é
 consultado em blocos de 180 dias. A biblioteca reúne, ordena e elimina apenas horários duplicados.
+
+`data.attrs["registered_period"]` informa a abrangência cadastral usada e `data.attrs["observed_period"]`, o primeiro
+e o último horário realmente retornados. Se início e fim forem fornecidos, a consulta não depende do inventário.
 
 As duas fontes produzem as mesmas colunas comuns:
 
@@ -61,10 +67,7 @@ As duas fontes produzem as mesmas colunas comuns:
 | `stage` | Cota adotada | cm |
 | `flow` | Vazão adotada | m³/s |
 | `station` | Código da estação | — |
-| `*_status` | Estado informado pela REST | — |
-| `updated_at` | Atualização na REST | — |
 
-O ServiceANA não fornece estados nem data de atualização, portanto essas colunas ficam vazias no resultado legado.
 `detailed=True` usa `HidroinfoanaSerieTelemetricaDetalhada/v1` e acrescenta bateria, chuva acumulada, cotas de sensor,
 display e manual, pressão atmosférica, temperatura da água e temperatura interna. O ServiceANA não possui resposta
 detalhada equivalente e rejeita essa opção explicitamente.

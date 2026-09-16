@@ -18,6 +18,25 @@ ANA(identifier=None, password=None, source="auto", timeout=60, session=None)
 | `telemetric(...)` | Alias compatível de `telemetry` |
 | `ANA.compare(rest, legacy, tolerance=0.005001)` | Resumo de cobertura e diferenças |
 
+## CEMADEN
+
+```python
+CEMADEN(email=None, password=None, token=None, partner=False, timeout=60, session=None)
+```
+
+| Método | Retorno |
+|---|---|
+| `authenticate(force=False)` | JWT ativo da PED |
+| `cities(uf)` | Municípios monitorados em uma UF |
+| `stations(uf=None, city_code=None, station_type=None, station=None)` | Cadastro filtrado de estações |
+| `sensors(station_type=None)` | Sensores por tipo de estação |
+| `data(station, start, end, sensor=None, network=11)` | Observações paginadas no intervalo inclusivo |
+| `recent(uf, station=None, city_code=None, sensor=None, station_type=None, network=11)` | Observações das últimas três horas |
+| `updated(since, network=11)` | Registros alterados desde uma data/hora |
+| `accumulated(city_code, station=None, station_id=None, at=None)` | Chuva acumulada de 1 a 120 horas |
+| `schedule(start, end, ..., file_format="CSV")` | Identificador de um histórico preparado assincronamente |
+| `schedules(status=None)` | Pedidos agendados, estados e links para download |
+
 ## ONS
 
 ```python

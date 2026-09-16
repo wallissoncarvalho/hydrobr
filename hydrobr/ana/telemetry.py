@@ -7,17 +7,14 @@ import pandas as pd
 from .exceptions import ANAResponseError
 
 
-COMMON_COLUMNS = ["station", "precipitation", "stage", "flow", "precipitation_status", "stage_status",
-                  "flow_status", "updated_at"]
+COMMON_COLUMNS = ["station", "precipitation", "stage", "flow"]
 DETAIL_COLUMNS = ["battery", "accumulated_precipitation", "accumulated_precipitation_status", "sensor_stage",
                   "sensor_stage_status", "display_stage", "display_stage_status", "manual_stage",
                   "manual_stage_status", "atmospheric_pressure", "atmospheric_pressure_status",
                   "water_temperature", "water_temperature_status", "internal_temperature"]
 REST_FIELDS = {
-    "codigoestacao": "station", "datahoramedicao": "Date", "dataatualizacao": "updated_at",
-    "chuvaadotada": "precipitation", "chuvaadotadastatus": "precipitation_status",
-    "cotaadotada": "stage", "cotaadotadastatus": "stage_status", "vazaoadotada": "flow",
-    "vazaoadotadastatus": "flow_status", "bateria": "battery",
+    "codigoestacao": "station", "datahoramedicao": "Date", "chuvaadotada": "precipitation",
+    "cotaadotada": "stage", "vazaoadotada": "flow", "bateria": "battery",
     "chuvaacumulada": "accumulated_precipitation", "chuvaacumuladastatus": "accumulated_precipitation_status",
     "cotasensor": "sensor_stage", "cotasensorstatus": "sensor_stage_status", "cotadisplay": "display_stage",
     "cotadisplaystatus": "display_stage_status", "cotamanual": "manual_stage",
@@ -94,12 +91,11 @@ def telemetry_frame(rows, source, station, detailed=False):
     if dates.isna().any():
         raise ANAResponseError("Registro telemétrico sem data válida.")
     data["station"], data["Date"] = returned, dates
-    for column in set(columns) - {"station", "updated_at"}:
+    for column in set(columns) - {"station"}:
         if column in data:
             data[column] = pd.to_numeric(data[column].astype(str).str.replace(",", "."), errors="coerce")
     data = data.reindex(columns=["Date"] + columns).sort_values("Date", kind="stable")
     data = data.drop_duplicates("Date", keep="last").set_index("Date")
-    data["updated_at"] = pd.to_datetime(data["updated_at"], errors="coerce")
     for column in STATUS_COLUMNS:
         if column in data:
             data[column] = data[column].astype("Int64")
@@ -125,17 +121,19 @@ class TelemetryMixin:
         code = self._code(station)
         if detailed and self.client.mode == "legacy":
             raise ValueError("detailed=True está disponível somente na fonte rest.")
-        period = self.telemetry_coverage(code)
+        period = self.telemetry_coverage(code) if start is None or end is None else None
         first = pd.Timestamp(start).normalize() if start is not None else period["start"]
         last = pd.Timestamp(end).normalize() if end is not None else period["end"]
         if pd.isna(first) or pd.isna(last) or first > last:
             raise ValueError("Intervalo inválido: start deve ser anterior ou igual a end.")
         rows = []
         for begin, finish in telemetry_windows(first, last, 30 if self.client.mode == "rest" else 180):
-            days = (finish - begin).days + 1
-            rest_params = {"Código da Estação": int(code), "Tipo Filtro Data": "DATA_LEITURA",
-                           "Data de Busca (yyyy-MM-dd)": finish.strftime("%Y-%m-%d"),
-                           "Range Intervalo de busca": rest_range(days)}
+            rest_params = None
+            if self.client.mode == "rest":
+                days = (finish - begin).days + 1
+                rest_params = {"Código da Estação": int(code), "Tipo Filtro Data": "DATA_LEITURA",
+                               "Data de Busca (yyyy-MM-dd)": finish.strftime("%Y-%m-%d"),
+                               "Range Intervalo de busca": rest_range(days)}
             legacy_params = {"codEstacao": code, "dataInicio": begin.strftime("%d/%m/%Y"),
                              "dataFim": finish.strftime("%d/%m/%Y")}
             endpoint = "HidroinfoanaSerieTelemetrica{}/v1".format("Detalhada" if detailed else "Adotada")
@@ -143,8 +141,11 @@ class TelemetryMixin:
             rows.extend(telemetry_records(response, self.client.mode))
         result = telemetry_frame(rows, self.client.mode, code, detailed)
         result = result[(result.index >= first) & (result.index < last + pd.Timedelta(days=1))]
+        observed = {"start": str(result.index.min()) if not result.empty else None,
+                    "end": str(result.index.max()) if not result.empty else None}
         result.attrs.update(source=self.client.mode, station=code, detailed=detailed,
                             requested_period={"start": str(first.date()), "end": str(last.date())},
+                            registered_period=period, observed_period=observed,
                             units={"precipitation": "mm", "stage": "cm", "flow": "m³/s"})
         return result
 

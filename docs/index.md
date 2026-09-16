@@ -7,15 +7,17 @@ a unidade e as ausências dos dados visíveis, sem interpolar ou preencher valor
 
 1. [Instale a biblioteca](installation.md).
 2. Consulte [estações e séries da ANA](ana.md).
-3. Consulte [reservatórios e grandezas do ONS](ons.md).
-4. Consulte [reservatórios do SIN e Nordeste no SAR](sar.md).
-5. Veja a [referência rápida da API](api.md).
+3. Consulte [estações e dados ambientais do CEMADEN](cemaden.md).
+4. Consulte [reservatórios e grandezas do ONS](ons.md).
+5. Consulte [reservatórios do SIN e Nordeste no SAR](sar.md).
+6. Veja a [referência rápida da API](api.md).
 
 ## Fontes disponíveis
 
 | Fonte | Dados implementados | Autenticação |
 |---|---|---|
 | ANA | Inventário; séries convencionais diárias; telemetria subdiária por estação | REST com credenciais ou ServiceANA legado sem credenciais |
+| CEMADEN | Estações, sensores, dados ambientais, acumulados e históricos agendados | Conta PED ou JWT |
 | ONS | Catálogo aberto; cadastro de reservatórios; dados hidráulicos diários e horários | Não exige credenciais |
 | SAR | Cadastro e histórico operacional do SIN, Nordeste e Outros Sistemas Hídricos | Não exige credenciais |
 

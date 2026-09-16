@@ -12,5 +12,6 @@ __pycache__/
 
 # Build and test artifacts
 build/
+dist/
 *.egg-info/
 .pytest_cache/
