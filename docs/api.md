@@ -1,5 +1,17 @@
 # Referência rápida da API
 
+## Índices climáticos NOAA
+
+```python
+ClimateIndices(timeout=60, session=None)
+```
+
+| Método | Retorno |
+|---|---|
+| `catalog()` | Índices, fontes, frequência, unidade, versão e climatologia |
+| `observed(index, start=None, end=None)` | Série observada NOAA/CPC ou NOAA/PSL |
+| `roni()`, `oni()`, `nino34()`, `rnino34()` etc. | Atalhos por índice, com datas opcionais |
+
 ## ANA
 
 ```python
@@ -9,6 +21,7 @@ ANA(identifier=None, password=None, source="auto", timeout=60, session=None)
 | Método | Retorno |
 |---|---|
 | `inventory(station)` | Dicionário normalizado do cadastro da estação |
+| `stations(uf=None, basin=None, station=None, name=None, river=None, city=None, all_states=False)` | Busca de estações e metadados do inventário |
 | `coverage(station, variable="flow")` | Início, fim, fonte e código da estação |
 | `flow(stations, only_consisted=False, start=None, end=None)` | Vazão diária em m³/s |
 | `stage(stations, only_consisted=False, start=None, end=None)` | Cota diária em cm |
@@ -17,6 +30,12 @@ ANA(identifier=None, password=None, source="auto", timeout=60, session=None)
 | `telemetry(station, start=None, end=None, detailed=False)` | Chuva, cota e vazão subdiárias; campos brutos opcionais na REST |
 | `telemetric(...)` | Alias compatível de `telemetry` |
 | `ANA.compare(rest, legacy, tolerance=0.005001)` | Resumo de cobertura e diferenças |
+| `quality(station, start=None, end=None)` | Qualidade da água, uma linha por parâmetro medido (REST) |
+| `sediment(station, start=None, end=None)` | Medições de sedimento (REST) |
+| `discharge_measurements(station, start=None, end=None)` | Medições pontuais de descarga líquida (REST) |
+| `rating_curves(station, start=None, end=None)` | Registros de curvas de descarga (REST) |
+| `cross_sections(station, start=None, end=None)` | Perfis transversais (REST) |
+| `grain_size(station, start=None, end=None)` | Granulometria (REST; endpoint oficial apresentou HTTP 417) |
 
 ## CEMADEN
 
@@ -54,6 +73,23 @@ ONS(timeout=60, cache_dir=None, session=None)
 | `hourly_hydraulic_data(start=None, end=None, reservoirs=None, variables=None, refresh=False)` | Dados hidráulicos horários em formato longo |
 | `natural_flow(start="2000-01-01", end=None, reservoirs=None, refresh=False)` | Vazões naturais diárias em formato largo |
 | `daily_data(...)` | Alias de `natural_flow` |
+
+## INMET
+
+```python
+INMET(timeout=60, session=None, page_size=10000)
+```
+
+| Método | Retorno |
+|---|---|
+| `datasets()` | Catálogo WIS2 publicado pelo INMET |
+| `official_stations(station_type="both")` | Catálogo oficial e correspondência entre códigos INMET e WIGOS |
+| `stations(station=None, inmet_code=None, traditional_code=None, ..., official_only=True)` | Estações WIS2 enriquecidas com metadados do INMET |
+| `coverage(station, dataset="hourly")` | Primeiro e último horários disponíveis |
+| `observations(station, start=None, end=None, dataset="hourly", variables=None, long=False)` | Observações de qualquer coleção suportada |
+| `hourly(...)` | SYNOP horário em formato largo ou longo |
+| `manual(...)` | SYNOP manual em formato largo ou longo |
+| `daily(...)` | Valores climáticos diários DAYCLI |
 
 ## SAR
 

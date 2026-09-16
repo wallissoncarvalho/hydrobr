@@ -37,6 +37,58 @@ consultada por ano civil, respeitando o limite de 366 dias por requisição. Ano
 O resultado tem índice diário `Date`, uma coluna por estação e `NaN` nos dias sem observação. Registros duplicados
 priorizam o maior nível de consistência. Use `only_consisted=True` para aceitar somente nível 2.
 
+## Busca de estações
+
+```python
+estacoes = ana.stations(uf="DF", name="DESCOBERTO")
+estacoes_bacia = ana.stations(basin=6, river="SÃO FRANCISCO")
+uma_estacao = ana.stations(station="60435000")
+# ana.stations(all_states=True, name="DESCOBERTO")  # consulta as 27 UFs
+```
+
+Informe `uf`, `basin` ou `station`; `all_states=True` é uma escolha explícita para varrer todo o país. `name`,
+`river` e `city` refinam os registros encontrados. A REST oferece filtros remotos por UF, bacia ou código; o
+ServiceANA também recebe os filtros textuais. O retorno mantém código com oito dígitos, nome, UF, coordenadas e
+os demais campos disponíveis no inventário. Os períodos cadastrais não garantem dados observados.
+
+## Qualidade da água, sedimentos e medições
+
+Esses produtos usam exclusivamente a REST da ANA, com credenciais. O ServiceANA não publica operações equivalentes.
+Com `source="auto"` e sem credenciais, a biblioteca informa que a REST é necessária.
+
+```python
+rest = ANA(source="rest")
+qualidade = rest.quality("60435000", "2020-01-01", "2020-12-31")
+sedimentos = rest.sediment("60435000", "2018-01-01", "2018-12-31")
+medicoes = rest.discharge_measurements("20001090", "2018-01-01", "2018-12-31")
+perfis = rest.cross_sections("60435000", "2020-01-01", "2020-12-31")
+curvas = rest.rating_curves("60435000", "2020-01-01", "2020-12-31")
+# granulometria = rest.grain_size("60435000", "2020-01-01", "2020-12-31")
+```
+
+Sem datas, a biblioteca usa o início e o fim cadastrados no inventário; se não houver início, pede `start`.
+O intervalo é dividido por ano civil, com no máximo 366 dias por chamada. Uma resposta sem registros produz
+DataFrame vazio, enquanto falhas da fonte geram exceção. Os atributos incluem produto, estação, período pedido,
+período cadastral quando consultado e período efetivamente observado.
+
+`quality()` produz uma linha por parâmetro realmente informado em cada coleta. `parameter_code`, `parameter` e
+`raw_field` mantêm a identificação publicada; `value` é numérico quando possível, `raw_value` preserva textos
+como `<0.05`, e `status` mantém o código original. Unidades estão embutidas nos nomes dos campos da ANA e **não**
+são inferidas ou convertidas. Não confunda `status` com uma classificação de qualidade criada pela HydroBr.
+
+Os outros métodos retornam uma linha por registro com campos em `snake_case`: por exemplo, medições de descarga
+trazem `cota_cm` e `vazao_m3_s`. `discharge_measurements()` são medições pontuais, distintas da série diária de
+`flow()`. `rating_curves()` retorna os registros publicados, sem avaliar a equação ou criar uma série calculada.
+`cross_sections()` preserva linhas/verticais do perfil sem agregá-las. A ANA não informa o fuso desses horários;
+a biblioteca não pressupõe UTC.
+
+A rota `HidroSerieGranulometria/v1` consta do Swagger e está exposta em `grain_size()`, mas respondeu HTTP 417
+com erro interno SQL nos testes reais desta etapa. A biblioteca propaga a falha; não a trata como ausência de dados.
+
+Os métodos novos também estão acessíveis como `hydrobr.get_data.ANA.stations`, `quality`, `sediment`,
+`discharge_measurements`, `rating_curves`, `cross_sections` e `grain_size` para quem ainda usa a interface histórica.
+Para código novo, prefira `from hydrobr import ANA`.
+
 ## Telemetria
 
 ```python

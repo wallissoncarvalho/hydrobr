@@ -51,7 +51,13 @@ class ANAClient:
     def _get(self, url, **kwargs):
         """Repete apenas falhas temporárias, com espera limitada."""
         for attempt in range(3):
-            response = self.session.get(url, timeout=self.timeout, **kwargs)
+            try:
+                response = self.session.get(url, timeout=self.timeout, **kwargs)
+            except requests.RequestException:
+                if attempt == 2:
+                    raise
+                time.sleep(0.5 * (attempt + 1))
+                continue
             if response.status_code not in (429, 502, 503, 504) or attempt == 2:
                 return response
             time.sleep(6 * (attempt + 1))
@@ -124,10 +130,13 @@ class ANAClient:
             "Senha": self.password,
         }
         try:
-            response = self.session.get(url, headers=headers, timeout=self.timeout)
+            response = self._get(url, headers=headers)
         except requests.RequestException as exc:
             raise ANAAuthenticationError("Não foi possível autenticar na API HidroWebService da ANA.") from exc
 
+        if response.status_code in (429, 502, 503, 504):
+            raise ANAAuthenticationError("A autenticação da ANA está temporariamente indisponível (HTTP {}).".format(
+                response.status_code))
         if response.status_code >= 400:
             message = "A API HidroWebService da ANA rejeitou as credenciais (HTTP {})."
             raise ANAAuthenticationError(message.format(response.status_code))

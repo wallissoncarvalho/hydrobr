@@ -1,13 +1,8 @@
-import calendar
-import datetime
-import json
 import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 import numpy as np
-from multiprocessing.pool import ThreadPool
-import warnings
 
 
 class ANA:
@@ -273,232 +268,70 @@ class ANA:
         from .ana import ANA as ANAService
         return ANAService(**kwargs).telemetry(station_code, start=start, end=end, detailed=detailed)
 
+    @staticmethod
+    def stations(uf=None, basin=None, station=None, name=None, river=None, city=None, all_states=False, **kwargs):
+        """Delega a busca de estações ao inventário atualizado da ANA."""
+        from .ana import ANA as ANAService
+        return ANAService(**kwargs).stations(uf, basin, station, name, river, city, all_states)
+
+    @staticmethod
+    def _extra(method, station, start=None, end=None, **kwargs):
+        from .ana import ANA as ANAService
+        return getattr(ANAService(**kwargs), method)(station, start, end)
+
+    @staticmethod
+    def quality(station, start=None, end=None, **kwargs):
+        return ANA._extra("quality", station, start, end, **kwargs)
+
+    @staticmethod
+    def sediment(station, start=None, end=None, **kwargs):
+        return ANA._extra("sediment", station, start, end, **kwargs)
+
+    @staticmethod
+    def discharge_measurements(station, start=None, end=None, **kwargs):
+        return ANA._extra("discharge_measurements", station, start, end, **kwargs)
+
+    @staticmethod
+    def rating_curves(station, start=None, end=None, **kwargs):
+        return ANA._extra("rating_curves", station, start, end, **kwargs)
+
+    @staticmethod
+    def cross_sections(station, start=None, end=None, **kwargs):
+        return ANA._extra("cross_sections", station, start, end, **kwargs)
+
+    @staticmethod
+    def grain_size(station, start=None, end=None, **kwargs):
+        return ANA._extra("grain_size", station, start, end, **kwargs)
+
 class INMET:
-    """
-    It provides a connection with the  Brazilian National Institute of Meteorology (Instituto Nacional de Meteorologia
-     - INMET) database.
-    """
+    """Interface compatível para a implementação WIS2 atual do INMET."""
 
     @staticmethod
-    def list_stations(station_type='both'):
-        """
-        Searches for precipitation stations registered at the Brazilian National Agency of Water (ANA) or the INMET
-        inventory.
-
-        Parameters
-        ----------
-        station_type : string, default 'both'
-            The type of station. 'both' to get the list of automatic and manual gauge stations, 'automatic' to get only
-            the automatic gauge stations, and 'conventional' to get only the conventional gauge stations.
-        Returns
-        -------
-        list_stations : pandas DataFrame
-            The selected list of stations as a pandas DataFrame
-        """
-
-        if station_type == 'both':
-            responseM = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=120.0)
-            responseT = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=120.0)
-            list_stations = pd.concat([pd.DataFrame(json.loads(responseM.text)),
-                                       pd.DataFrame(json.loads(responseT.text))])
-        elif station_type == 'automatic':
-            response = requests.get('https://apitempo.inmet.gov.br/estacoes/T', timeout=120.0)
-            list_stations = pd.DataFrame(json.loads(response.text))
-        elif station_type == 'conventional':
-            response = requests.get('https://apitempo.inmet.gov.br/estacoes/M', timeout=120.0)
-            list_stations = pd.DataFrame(json.loads(response.text))
-        else:
-            raise Exception('Please, select a valid station type.')
-
-        list_stations['TP_ESTACAO'].replace({'Automatica': 'Automatic', 'Convencional': 'Conventional'}, inplace=True)
-        list_stations.rename(columns={'CD_ESTACAO': 'Code', 'TP_ESTACAO': 'Type', 'DC_NOME': 'Name',
-                                      'SG_ESTADO': 'State', 'VL_LATITUDE': 'Latitude', 'VL_LONGITUDE': 'Longitude',
-                                      'VL_ALTITUDE': 'Height', 'DT_INICIO_OPERACAO': 'Start Operation',
-                                      'DT_FIM_OPERACAO': 'End Operation'},
-                             inplace=True)
-        list_stations = list_stations[
-            ['Code', 'Type', 'Name', 'State', 'Latitude', 'Longitude', 'Height', 'Start Operation', 'End Operation']]
-        list_stations['Start Operation'] = pd.to_datetime(list_stations['Start Operation'])
-        list_stations['End Operation'] = pd.to_datetime(list_stations['End Operation']).replace(
-            {pd.NaT: 'In operation'})
-        return list_stations
+    def list_stations(station_type="both", **kwargs):
+        """Lista estações WIGOS; ``station_type`` aceita both, automatic ou conventional."""
+        from .inmet import INMET as INMETService
+        choices = {"both": None, "automatic": "hourly", "conventional": "manual"}
+        if station_type not in choices:
+            raise ValueError("station_type deve ser both, automatic ou conventional.")
+        client = INMETService(timeout=kwargs.pop("timeout", 60), session=kwargs.pop("session", None),
+                              page_size=kwargs.pop("page_size", 10000))
+        return client.official_stations(station_type)
 
     @staticmethod
-    def daily_data(station_code, filter=True, threads=10):
-        """
-        Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
-        (Instituto Nacional de Meteorologia - INMET) database.
-
-        Returns a pandas daily DataFrame with six variables for each day:
-            - Prec - Precipitation (mm)
-            - Tmean - Daily mean Temperature (ºC)
-            - Tmax - Maximum Temperature (ºC)
-            - Tmin - Minimum Temperature (ºC)
-            - RH - Relative Humidity (%)
-            - SD - Sunshine Duration (hours)
-
-        Parameters
-        ----------
-        station_code : string
-            Code of the station as a string
-        filter: boolean, default True
-            There is stations with repeated registered data. If 'True' the function returns a panda DataFrame
-            with the first occurrence of the date. If 'False' return a pandas DataFrame with, in some cases, repeated
-            datetime index.
-        threads: int
-            Number of parallel requisitions
-
-        Returns
-        -------
-        data : pandas DataFrame
-            The data of the selected station as a pandas DataFrame
-        """
-        list_stations = INMET.list_stations()
-        station = list_stations[list_stations.Code == station_code]
-        if len(station) == 0:
-            raise Exception('Please input a valid station code')
-
-        # Defining dates
-        start = station['Start Operation'].to_list()[0].strftime("%Y-%m-%d")
-        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='60D').to_list()
-        if start_dates[0].strftime("%Y-%m-%d") != start:
-            start_dates.insert(0, pd.to_datetime(start))
-        end_dates = []
-        for i in range(len(start_dates) - 1):
-            end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
-        end_dates.append(pd.to_datetime("today"))
-
-        def __call_request(date):
-            start_date = date[0]
-            end_date = date[1]
-            try:
-                response = requests.get('https://apitempo.inmet.gov.br/estacao/diaria/{}/{}/{}'.format(
-                    start_date.strftime("%Y-%m-%d"),
-                    end_date.strftime("%Y-%m-%d"),
-                    station_code),
-                    timeout=120.0)
-                response = pd.DataFrame(json.loads(response.text))
-            except:
-                raise Exception('It was not possible to get the data, please verify your connection and try again.')
-            return response
-
-        # Getting the data
-        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
-        with ThreadPool(threads) as pool:
-            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
-        data_station = pd.concat(responses)
-        data_station.rename(
-            columns={'CHUVA': 'Prec', 'TEMP_MAX': 'Tmax', 'TEMP_MED': 'Tmean', 'TEMP_MIN': 'Tmin', 'UMID_MED': 'RHmean',
-                     'UMID_MIN': 'RHmin', 'UMID_MAX': 'RHmax', 'INSOLACAO': 'SD', 'DT_MEDICAO': 'Date'}, inplace=True)
-        data_station.index = pd.to_datetime(data_station.Date)
-        data_station.drop(['UF', 'Date', 'DC_NOME', 'CD_ESTACAO', 'VL_LATITUDE', 'VL_LONGITUDE'], axis=1, inplace=True)
-        data_station = data_station[sorted(data_station.columns)]
-        data_station[data_station.columns] = data_station[data_station.columns].apply(pd.to_numeric, errors='coerce')
-        data_station = data_station.dropna(how='all', axis=0)
-        if filter:
-            data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
-            date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='D')
-            data_station = data_station.reindex(date_index)
-        data_station = data_station.convert_dtypes()
-        data_station = data_station.astype(float)
-        data_station.index = pd.to_datetime(data_station.index)
-        return data_station
+    def hourly_data(station_code, threads=10, start=None, end=None, variables=None, long=False, **kwargs):
+        """Obtém SYNOP horário no WIS2; ``threads`` é mantido por compatibilidade."""
+        from .inmet import INMET as INMETService
+        client = INMETService(timeout=kwargs.pop("timeout", 60), session=kwargs.pop("session", None),
+                              page_size=kwargs.pop("page_size", 10000))
+        return client.hourly(station_code, start, end, variables, long)
 
     @staticmethod
-    def hourly_data(station_code, threads=10):
-        """
-        Searches for all the data of a station registered at the Brazilian National Institute of Meteorology
-        (Instituto Nacional de Meteorologia - INMET) database.
-
-        Only works for Automatic Stations.
-
-        Returns a pandas hourly DataFrame with 17 variables for each day:
-            - Tins - Instant Temperature (ºC)
-            - Tmax - Maximum Temperature (ºC)
-            - Tmin - Minimum Temperature (ºC)
-            - RHins - Instant Relative Humidity (%)
-            - RHmax - Maximum Relative Humidity (%)
-            - RHmin - Minimum Relative Humidity (%)
-            - DPins - Instant Dew Point Temperature (ºC)
-            - DPmax - Maximum Dew Point Temperature (ºC)
-            - DPmin - Minimum Dew Point Temperature (ºC)
-            - Pins - Instant Pressure (hPa)
-            - Pmax - Maximum Pressure (hPa)
-            - Pmin - Minimum Pressure (hPa)
-            - Wspeed - Wind Speed (m/s)
-            - Wdir - Wind direction (º)
-            - Wgust - Wind gust (m/s)
-            - Rad - Global Radiation (kJ/m²)
-            - Prec - Precipitation (mm)
-
-        Parameters
-        ----------
-        station_code : string
-            Code of the station as a string.
-        threads: int
-            Number of parallel requisitions
-        Returns
-        -------
-        data : pandas DataFrame
-            The data of the selected station as a pandas DataFrame.
-        """
-        list_stations = INMET.list_stations(station_type='automatic')
-        station = list_stations[list_stations.Code == station_code]
-        if len(station) == 0:
-            raise Exception('Please input a valid station code')
-
-        # Defining dates
-        start = station['Start Operation'].to_list()[0].strftime("%Y-%m-%d")
-        start_dates = pd.date_range(start=start, end=pd.to_datetime("today"), freq='60D').to_list()
-        if start_dates[0].strftime("%Y-%m-%d") != start:
-            start_dates.insert(0, pd.to_datetime(start))
-        end_dates = []
-        for i in range(len(start_dates) - 1):
-            end_dates.append(start_dates[i + 1] + datetime.timedelta(days=-1))
-        end_dates.append(pd.to_datetime("today"))
-
-        def __call_request(date):
-            start_date = date[0]
-            end_date = date[1]
-            try:
-                response = requests.get(
-                    'https://apitempo.inmet.gov.br/estacao/{}/{}/{}'.format(start_date.strftime("%Y-%m-%d"),
-                                                                            end_date.strftime("%Y-%m-%d"),
-                                                                            station_code), timeout=120.0)
-                response = pd.DataFrame(json.loads(response.text))
-            except:
-                raise Exception('It was not possible to get the data, please verify your connection and try again.')
-            return response
-
-        # Getting the data
-        iteration = [(start_date, end_date) for start_date, end_date in zip(start_dates, end_dates)]
-        with ThreadPool(threads) as pool:
-            responses = list(tqdm(pool.imap(__call_request, iteration), total=len(iteration)))
-
-        data_station = pd.concat(responses)
-        data_station['Date'] = pd.to_datetime(
-            data_station['DT_MEDICAO'] + data_station['HR_MEDICAO'].apply(lambda x: ' ' + x[:2]))
-        data_station.index = data_station['Date']
-        data_station.rename(columns={'CHUVA': 'Prec', 'TEM_MAX': 'Tmax', 'TEM_INS': 'Tins', 'TEM_MIN': 'Tmin',
-                                     'PRE_INS': 'Pins', 'PRE_MAX': 'Pmax', 'PRE_MIN': 'Pmin', 'PTO_INS': 'DPins',
-                                     'PTO_MAX': 'DPmax',
-                                     'PTO_MIN': 'DPmin', 'UMD_INS': 'RHins', 'UMD_MAX': 'RHmax', 'UMD_MIN': 'RHmin',
-                                     'VEN_DIR': 'Wdir',
-                                     'VEN_RAJ': 'Wgust', 'VEN_VEL': 'Wspeed', 'RAD_GLO': 'Rad'}, inplace=True)
-        data_station = data_station[
-            ['Tins', 'Tmax', 'Tmin', 'RHins', 'RHmax', 'RHmin', 'DPins', 'DPmax', 'DPmin', 'Pins', 'Pmax', 'Pmin',
-             'Wspeed', 'Wdir', 'Wgust', 'Rad', 'Prec']]
-
-        # Cleaning the data
-        data_station = data_station.dropna(how='all', axis=0)
-        data_station = data_station.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
-        date_index = pd.date_range(data_station.index[0], data_station.index[-1], freq='H')
-        data_station = data_station.reindex(date_index)
-        data_station = data_station.sort_index()
-        data_station = data_station.convert_dtypes()
-        data_station = data_station.astype(float)
-        data_station.index = pd.to_datetime(data_station.index)
-        return data_station
+    def daily_data(station_code, filter=True, threads=10, start=None, end=None, variables=None, long=False, **kwargs):
+        """Obtém valores climáticos diários DAYCLI no WIS2; argumentos antigos são aceitos por compatibilidade."""
+        from .inmet import INMET as INMETService
+        client = INMETService(timeout=kwargs.pop("timeout", 60), session=kwargs.pop("session", None),
+                              page_size=kwargs.pop("page_size", 10000))
+        return client.daily(station_code, start, end, variables, long)
 
 
 class ONS:

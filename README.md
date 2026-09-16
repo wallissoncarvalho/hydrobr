@@ -17,8 +17,10 @@ Esta documentação corresponde à branch de reestruturação, ainda não public
 - [Instalação](docs/installation.md)
 - [Guia da ANA](docs/ana.md)
 - [Guia do CEMADEN](docs/cemaden.md)
+- [Guia do INMET via WIS2](docs/inmet.md)
 - [Guia do ONS](docs/ons.md)
 - [Guia do SAR](docs/sar.md)
+- [Índices climáticos observados NOAA](docs/climate.md)
 - [Referência rápida](docs/api.md)
 - [Exemplos executáveis](examples/)
 
@@ -28,8 +30,11 @@ Depois da instalação, execute os exemplos a partir da raiz do repositório:
 python -m examples.ons_hydraulic
 python -m examples.ana_historical
 python -m examples.ana_telemetry
+python -m examples.ana_extended
 python -m examples.cemaden_observations
+python -m examples.inmet_wis2
 python -m examples.sar_reservoirs
+python -m examples.climate_indices
 ```
 
 ## Dados históricos da ANA
@@ -41,9 +46,10 @@ ana = ANA()  # usa credenciais do ambiente, ou o ServiceANA público
 print(ana.coverage("65310001", variable="flow"))
 vazao = ana.flow("65310001")
 cota = ana.stage("65310001")
+estacoes = ana.stations(uf="DF", name="DESCOBERTO")
 ```
 
-Cada consulta executa dois passos:
+Cada consulta de série histórica sem datas explícitas executa dois passos:
 1. Consulta o inventário para determinar início e fim da abrangência.
 2. Baixa todo o intervalo. Na REST, faz consultas por ano civil, com no máximo 366 dias, e reúne os registros.
 

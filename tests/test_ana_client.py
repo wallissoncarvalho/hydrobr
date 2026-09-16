@@ -122,3 +122,14 @@ def test_rate_limit_retries_are_bounded(monkeypatch):
     with pytest.raises(ANAResponseError, match='limitou'):
         ANAClient(source='legacy', session=session).request('', 'HidroSerieHistorica')
     assert session.get.call_count == 3
+
+
+def test_authentication_recovers_from_a_transient_network_error(monkeypatch):
+    monkeypatch.setattr('hydrobr.ana.client.time.sleep', lambda seconds: None)
+    session = Mock()
+    session.get.side_effect = [requests.ConnectionError('temporary'),
+                               response(json_payload={'items': {'token': 'jwt'}}), response()]
+
+    ANAClient('id', 'password', session=session).request('HidroSerieQA/v1', '')
+
+    assert session.get.call_count == 3
