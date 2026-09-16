@@ -13,7 +13,8 @@ a unidade e as ausências dos dados visíveis, sem interpolar ou preencher valor
 6. Consulte [reservatórios do SIN e Nordeste no SAR](sar.md).
 7. Consulte [índices climáticos observados NOAA](climate.md).
 8. Consulte [estimativas climáticas NASA POWER por coordenada](nasa_power.md).
-9. Veja a [referência rápida da API](api.md).
+9. Veja [máximas, tendências, assinaturas e clusters](analysis.md).
+10. Veja a [referência rápida da API](api.md).
 
 ## Fontes disponíveis
 

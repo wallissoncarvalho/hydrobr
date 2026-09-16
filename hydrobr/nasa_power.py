@@ -143,7 +143,8 @@ class NASAPOWER:
         except (KeyError, TypeError, ValueError) as error:
             raise NASAPOWERError("NASA POWER retornou dados de ponto inesperados.") from error
         data = data.reindex(columns=names)
-        data.attrs.update(source="NASA POWER", temporal=temporal, community=community, units={key: value.get("units") for key, value in metadata.items()},
+        units = {key: value.get("units") for key, value in metadata.items()}
+        data.attrs.update(source="NASA POWER", temporal=temporal, community=community, units=units,
                           parameter_metadata=metadata, requested_coordinates=(latitude, longitude),
                           grid_coordinates=payload.get("geometry", {}).get("coordinates"), header=header,
                           messages=payload.get("messages", []), endpoint=f"{POWER_API}/temporal/{temporal}/point",

@@ -22,6 +22,7 @@ Esta documentação corresponde à branch de reestruturação, ainda não public
 - [Guia do SAR](docs/sar.md)
 - [Índices climáticos observados NOAA](docs/climate.md)
 - [NASA POWER por coordenada](docs/nasa_power.md)
+- [Processamento hidrológico](docs/analysis.md)
 - [Referência rápida](docs/api.md)
 - [Exemplos executáveis](examples/)
 
@@ -37,6 +38,7 @@ python -m examples.inmet_wis2
 python -m examples.sar_reservoirs
 python -m examples.climate_indices
 python -m examples.nasa_power_point
+python -m examples.hydrological_analysis
 ```
 
 ## Dados históricos da ANA

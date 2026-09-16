@@ -3,6 +3,7 @@
 __version__ = '0.1.1'
 
 from hydrobr import get_data
+from hydrobr.analysis import HydroAnalysis
 from hydrobr.ana import ANA, ANAClient
 from hydrobr.cemaden import CEMADEN, CEMADENError
 from hydrobr.climate import ClimateIndices, ClimateIndexError

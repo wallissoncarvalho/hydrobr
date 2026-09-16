@@ -1,5 +1,26 @@
 # Referência rápida da API
 
+## Processamento hidrológico
+
+| Método | Retorno |
+|---|---|
+| `HydroAnalysis.annual_maxima(data, duration=1, variable="precipitation", ...)` | Máximas e auditoria por estação/ano |
+| `HydroAnalysis.seasonal_totals(data, months, year_start_month=1, ...)` | Totais de meses escolhidos e auditoria de cobertura |
+| `HydroAnalysis.trends(annual, alpha=0.05, min_years=8)` | Mann–Kendall, Sen e autocorrelação diagnóstica |
+| `HydroAnalysis.change_points(annual, ...)` | Pettitt e Buishand com p-valores por permutação |
+| `HydroAnalysis.teleconnections(annual, climate_monthly, months, ...)` | Correlações sazonais com defasagens e p-ajustado |
+| `HydroAnalysis.double_mass(target, references, ...)` | Curva de dupla massa anual e auditoria de cobertura |
+| `HydroAnalysis.precipitation_signatures(data, ...)` | Assinaturas da precipitação diária |
+| `HydroAnalysis.flow_signatures(data, ...)` | Assinaturas da vazão diária |
+| `HydroAnalysis.runoff_ratio(precipitation, flow, basin_area_km2, ...)` | Lâmina escoada e coeficiente anual |
+| `HydroAnalysis.cluster(signatures, k, method="ward", ...)` | Grupos Ward ou K-means |
+| `HydroAnalysis.evaluate_clusters(signatures, max_k=8, ...)` | Silhouette e Davies–Bouldin por k |
+| `Plot.trend(annual, station, result=None)` | Série anual e reta de Sen |
+| `Plot.change_point(annual, results, station, test="pettitt")` | Série e candidato a ruptura |
+| `Plot.teleconnections(results, station, lag_years=0)` | Correlações por índice climático |
+| `Plot.double_mass(data)` | Curva alvo versus referência acumulada |
+| `Plot.cluster_scores(scores)` | Comparação gráfica de clusters |
+
 ## NASA POWER
 
 ```python
